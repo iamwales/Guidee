@@ -1,0 +1,71 @@
+import { useCallback } from "react";
+import { classifyIntent, dispatchAgent } from "@/lib/api";
+import { streamAgentProgress } from "@/lib/stream";
+import { useGuideeStore, type AgentTask } from "@/stores/guidee";
+
+export function useAgent() {
+  const addAgentTask = useGuideeStore((s) => s.addAgentTask);
+  const updateAgentTask = useGuideeStore((s) => s.updateAgentTask);
+  const addMessage = useGuideeStore((s) => s.addMessage);
+
+  const handleUserRequest = useCallback(
+    async (
+      transcript: string,
+      screenshotB64?: string | null
+    ): Promise<{ type: "instant"; transcript: string } | void> => {
+      const classification = await classifyIntent(transcript, screenshotB64);
+
+      if (classification.route === "clarify") {
+        addMessage({
+          role: "assistant",
+          content:
+            classification.clarify_question ??
+            "Could you clarify what you'd like me to do?",
+        });
+        return;
+      }
+
+      if (classification.route === "instant") {
+        return { type: "instant", transcript };
+      }
+
+      const { task_id, route } = await dispatchAgent(
+        classification.task ?? transcript,
+        classification.route,
+        screenshotB64
+      );
+
+      addAgentTask({
+        id: task_id,
+        route,
+        status: "pending",
+        taskInput: classification.task ?? transcript,
+      });
+
+      streamAgentProgress(task_id, (event) => {
+        updateAgentTask(task_id, {
+          status: (event.status as AgentTask["status"]) ?? "running",
+          stepsDone: event.steps_done as number | undefined,
+          stepsTotal: event.steps_total as number | undefined,
+          progressMessage: (event.message as string) ?? undefined,
+          result: event.result as string | undefined,
+        });
+
+        if (event.type === "done" || event.status === "done") {
+          addMessage({
+            role: "assistant",
+            content: String(event.result ?? "Task completed."),
+          });
+        }
+      });
+
+      addMessage({
+        role: "assistant",
+        content: `Running ${route} agent…`,
+      });
+    },
+    [addAgentTask, updateAgentTask, addMessage]
+  );
+
+  return { handleUserRequest };
+}

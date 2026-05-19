@@ -1,1 +1,48 @@
-Plan.md
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.Python
+
+# Build
+dist/
+target/
+*.egg-info/
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Tauri
+apps/desktop/src-tauri/target/
+
+# Logs
+*.log
+logs/
+
+# Models (Whisper / Porcupine — download separately)
+models/
+*.bin
+*.onnx
+
+# Secrets
+*.pem
+*.key
+
+# Test / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# OS
+Thumbs.db

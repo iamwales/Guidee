@@ -1,0 +1,42 @@
+import time
+from typing import Annotated
+
+import redis.asyncio as redis
+from fastapi import Depends, HTTPException, Request, status
+
+from app.core.config import Settings, get_settings
+from app.core.security import AuthUser, get_current_user
+
+_redis: redis.Redis | None = None
+
+
+async def get_redis(settings: Annotated[Settings, Depends(get_settings)]) -> redis.Redis:
+    global _redis
+    if _redis is None:
+        _redis = redis.from_url(settings.redis_url, decode_responses=True)
+    return _redis
+
+
+async def check_rate_limit(
+    request: Request,
+    user: Annotated[AuthUser, Depends(get_current_user)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    r: Annotated[redis.Redis, Depends(get_redis)],
+    limit: int,
+    window_seconds: int = 60,
+) -> None:
+    path = request.url.path
+    key = f"rl:{user.clerk_id}:{path}:{int(time.time()) // window_seconds}"
+    try:
+        count = await r.incr(key)
+        if count == 1:
+            await r.expire(key, window_seconds)
+        if count > limit:
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "Rate limit exceeded",
+                headers={"Retry-After": str(window_seconds)},
+            )
+    except redis.RedisError:
+        # Fail open if Redis unavailable in dev
+        pass

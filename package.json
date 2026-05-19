@@ -1,0 +1,19 @@
+{
+  "name": "guidee",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Desktop AI assistant — Tauri + FastAPI + LangGraph",
+  "workspaces": [
+    "apps/desktop"
+  ],
+  "scripts": {
+    "dev:desktop": "npm run tauri dev --workspace=apps/desktop",
+    "dev:api": "cd services/api && uvicorn app.main:app --reload --port 8000",
+    "dev:worker": "cd services/agents && python worker.py",
+    "build:desktop": "npm run tauri build --workspace=apps/desktop",
+    "lint:desktop": "npm run lint --workspace=apps/desktop"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

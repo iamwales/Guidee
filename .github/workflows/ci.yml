@@ -18,11 +18,12 @@ jobs:
         with:
           python-version: "3.11"
       - uses: astral-sh/setup-uv@v5
-      - run: uv pip install --system -r services/api/requirements.txt -r requirements-dev.txt
-      - run: ruff check services/api
-      - run: mypy services/api
-      - run: python -m compileall services/api/app
-      - run: PYTHONPATH=services/api pytest services/api/tests
+      - run: uv venv
+      - run: uv pip install -r services/api/requirements.txt -r requirements-dev.txt
+      - run: uv run ruff check services/api
+      - run: uv run mypy services/api
+      - run: uv run python -m compileall services/api/app
+      - run: PYTHONPATH=services/api uv run pytest services/api/tests
 
   agents:
     runs-on: ubuntu-latest
@@ -35,11 +36,12 @@ jobs:
         with:
           python-version: "3.11"
       - uses: astral-sh/setup-uv@v5
-      - run: uv pip install --system -r services/agents/requirements.txt -r requirements-dev.txt
-      - run: ruff check services/agents
-      - run: mypy services/agents
-      - run: python -m compileall services/agents
-      - run: PYTHONPATH=services/agents pytest services/agents/tests
+      - run: uv venv
+      - run: uv pip install -r services/agents/requirements.txt -r requirements-dev.txt
+      - run: uv run ruff check services/agents
+      - run: uv run mypy services/agents
+      - run: uv run python -m compileall services/agents
+      - run: PYTHONPATH=services/agents uv run pytest services/agents/tests
 
   desktop:
     runs-on: ubuntu-latest
@@ -52,21 +54,36 @@ jobs:
         with:
           node-version: "20"
           cache: npm
+          cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm run lint:desktop
-      - run: npm run build:desktop
+      - run: npm run build --workspace=apps/desktop
 
   rust:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libayatana-appindicator3-dev \
+            libdbus-1-dev \
+            librsvg2-dev \
+            libwebkit2gtk-4.1-dev \
+            libx11-dev \
+            libxcb-randr0-dev \
+            libpipewire-0.3-dev \
+            patchelf \
+            pkg-config
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
+          cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run build:desktop
+      - run: npm run build --workspace=apps/desktop
       - run: cargo check
         working-directory: apps/desktop/src-tauri
       - run: cargo test

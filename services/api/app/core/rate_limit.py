@@ -2,9 +2,10 @@ import time
 from typing import Annotated, Any
 
 import redis.asyncio as redis
+from fastapi import Depends, HTTPException, Request, status
+
 from app.core.config import Settings, get_settings
 from app.core.security import AuthUser, get_current_user
-from fastapi import Depends, HTTPException, Request, status
 
 _redis: redis.Redis | None = None
 

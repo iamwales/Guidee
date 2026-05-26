@@ -33,7 +33,7 @@ apps/desktop/src-tauri/gen/
 logs/
 
 # Models (Whisper / Porcupine — download separately)
-models/
+/models/
 *.bin
 *.onnx
 

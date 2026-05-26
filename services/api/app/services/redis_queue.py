@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 import redis.asyncio as redis
+
 from app.core.config import Settings
 
 TASK_QUEUE = "guidee:agent:queue"

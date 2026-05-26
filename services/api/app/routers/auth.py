@@ -1,10 +1,11 @@
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from jose import jwt
+
 from app.core.config import Settings, get_settings
 from app.core.security import AuthUser, get_current_user
 from app.models.schemas import AuthTokenRequest, AuthTokenResponse, UserMeResponse
-from fastapi import APIRouter, Depends, HTTPException, status
-from jose import jwt
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

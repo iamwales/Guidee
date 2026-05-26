@@ -1,10 +1,11 @@
 from typing import Annotated
 
 import stripe
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+
 from app.core.config import Settings, get_settings
 from app.core.security import AuthUser, get_current_user
 from app.models.schemas import BillingCheckoutRequest, BillingCheckoutResponse
-from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 

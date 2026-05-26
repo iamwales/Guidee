@@ -1,13 +1,14 @@
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, Request
+from sse_starlette.sse import EventSourceResponse
+
 from app.core.config import Settings, get_settings
 from app.core.rate_limit import check_rate_limit, get_redis
 from app.core.security import AuthUser, get_current_user
 from app.models.schemas import ChatRequest, SupervisorRequest, SupervisorResponse
 from app.services.claude import ClaudeService, build_messages
 from app.services.supervisor import classify_request
-from fastapi import APIRouter, Depends, Request
-from sse_starlette.sse import EventSourceResponse
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 

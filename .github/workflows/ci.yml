@@ -68,6 +68,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            libasound2-dev \
             libayatana-appindicator3-dev \
             libdbus-1-dev \
             librsvg2-dev \

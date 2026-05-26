@@ -1,11 +1,10 @@
 from typing import Annotated
 
 import stripe
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-
 from app.core.config import Settings, get_settings
 from app.core.security import AuthUser, get_current_user
 from app.models.schemas import BillingCheckoutRequest, BillingCheckoutResponse
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
@@ -22,7 +21,10 @@ async def create_checkout(
     settings: Annotated[Settings, Depends(get_settings)],
 ):
     if not settings.stripe_secret_key:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Billing not configured")
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Billing not configured",
+        )
     stripe.api_key = settings.stripe_secret_key
     session = stripe.checkout.Session.create(
         mode="subscription",
@@ -41,7 +43,10 @@ async def billing_portal(
 ):
     _ = user
     if not settings.stripe_secret_key:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Billing not configured")
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Billing not configured",
+        )
     return {"url": "https://billing.stripe.com/p/login/test"}
 
 

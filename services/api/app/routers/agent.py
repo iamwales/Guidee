@@ -1,8 +1,5 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sse_starlette.sse import EventSourceResponse
-
 from app.core.config import Settings, get_settings
 from app.core.rate_limit import check_rate_limit, get_redis
 from app.core.security import AuthUser, get_current_user
@@ -12,9 +9,12 @@ from app.models.schemas import (
     AgentStatusResponse,
     SupervisorRequest,
 )
+from app.routers.chat import get_claude
 from app.services.claude import ClaudeService
 from app.services.redis_queue import TaskStore
 from app.services.supervisor import classify_request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sse_starlette.sse import EventSourceResponse
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
@@ -62,7 +62,10 @@ async def dispatch_agent(
 
     agent_routes = {"browser", "research", "file", "email"}
     if route not in agent_routes:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Invalid agent route: {route}")
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Invalid agent route: {route}",
+        )
 
     task_id = await tasks.create_task(
         user.clerk_id,
@@ -86,7 +89,11 @@ async def route_and_dispatch(
     r = await get_redis(settings)
     await check_rate_limit(request, user, settings, r, settings.rate_limit_agent)
 
-    classification = await classify_request(claude, body.transcript, body.screenshot_b64)
+    classification = await classify_request(
+        claude,
+        body.transcript,
+        body.screenshot_b64,
+    )
 
     if classification.route == "instant":
         raise HTTPException(

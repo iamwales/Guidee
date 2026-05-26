@@ -13,14 +13,14 @@ pub async fn capture_screen(monitor_id: Option<u32>) -> Result<String, String> {
     let monitor = if let Some(id) = monitor_id {
         monitors
             .into_iter()
-            .find(|m| m.id().map(|i| i as u32) == Some(id))
+            .find(|m| m.id().ok() == Some(id))
             .ok_or_else(|| format!("Monitor {id} not found"))?
     } else {
         monitors.into_iter().next().ok_or("No monitors found")?
     };
 
     let image = monitor.capture_image().map_err(|e| e.to_string())?;
-    let rgba = image.to_rgba8();
+    let rgba = image;
     let (w, h) = rgba.dimensions();
 
     let (nw, nh) = scale_dimensions(w, h, MAX_WIDTH, MAX_HEIGHT);

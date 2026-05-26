@@ -4,9 +4,9 @@ Maps route strings to compiled LangGraph agents.
 """
 
 from graphs.browser_graph import browser_graph
-from graphs.research_agent import research_agent
-from graphs.file_agent import file_agent
 from graphs.email_agent import email_agent
+from graphs.file_agent import file_agent
+from graphs.research_agent import research_agent
 
 ROUTE_GRAPHS = {
     "browser": browser_graph,

@@ -11,33 +11,41 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: services/api
+        working-directory: .
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -r requirements.txt
-      - run: python -m compileall app
+      - uses: astral-sh/setup-uv@v5
+      - run: uv pip install --system -r services/api/requirements.txt -r requirements-dev.txt
+      - run: ruff check services/api
+      - run: mypy services/api
+      - run: python -m compileall services/api/app
+      - run: PYTHONPATH=services/api pytest services/api/tests
 
   agents:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: services/agents
+        working-directory: .
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -r requirements.txt
-      - run: python -m compileall .
+      - uses: astral-sh/setup-uv@v5
+      - run: uv pip install --system -r services/agents/requirements.txt -r requirements-dev.txt
+      - run: ruff check services/agents
+      - run: mypy services/agents
+      - run: python -m compileall services/agents
+      - run: PYTHONPATH=services/agents pytest services/agents/tests
 
   desktop:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: apps/desktop
+        working-directory: .
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,14 +53,23 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
-      - run: npm run build
+      - run: npm run lint:desktop
+      - run: npm run build:desktop
 
   rust:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/desktop/src-tauri
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run build:desktop
       - run: cargo check
+        working-directory: apps/desktop/src-tauri
+      - run: cargo test
+        working-directory: packages/stt
+      - run: cargo test
+        working-directory: packages/wake-word

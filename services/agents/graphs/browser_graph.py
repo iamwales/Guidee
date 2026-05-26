@@ -1,7 +1,6 @@
 from langgraph.graph import END, StateGraph
-
+from nodes import action_agent, dom_agent, instruction_agent, summarizer, vision_agent
 from state import AgentState
-from nodes import vision_agent, dom_agent, instruction_agent, action_agent, summarizer
 
 graph = StateGraph(AgentState)
 graph.add_node("vision", vision_agent.run)

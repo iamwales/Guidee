@@ -1,11 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from jose import jwt
-
 from app.core.config import Settings, get_settings
 from app.core.security import AuthUser, get_current_user
 from app.models.schemas import AuthTokenRequest, AuthTokenResponse, UserMeResponse
+from fastapi import APIRouter, Depends, HTTPException, status
+from jose import jwt
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -41,7 +40,9 @@ async def exchange_token(
 
 
 @router.get("/me", response_model=UserMeResponse)
-async def get_me(user: Annotated[AuthUser, Depends(get_current_user)]) -> UserMeResponse:
+async def get_me(
+    user: Annotated[AuthUser, Depends(get_current_user)],
+) -> UserMeResponse:
     return UserMeResponse(
         clerk_id=user.clerk_id,
         email=user.email,

@@ -2,10 +2,9 @@ from dataclasses import dataclass
 from typing import Annotated
 
 import httpx
+from app.core.config import Settings, get_settings
 from fastapi import Depends, HTTPException, Request, status
 from jose import JWTError, jwt
-
-from app.core.config import Settings, get_settings
 
 JWKS_CACHE: dict | None = None
 

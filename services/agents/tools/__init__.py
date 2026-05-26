@@ -1,8 +1,8 @@
-from tools.web_search import web_search
-from tools.browser import browse_url, get_page_html, execute_action
-from tools.filesystem import read_file, write_file, list_directory
-from tools.email import send_email, draft_email
+from tools.browser import browse_url
 from tools.code_exec import run_code
+from tools.email import draft_email, send_email
+from tools.filesystem import list_directory, read_file, write_file
+from tools.web_search import web_search
 
 TOOL_REGISTRY = {
     "web_search": web_search,

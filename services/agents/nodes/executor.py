@@ -1,10 +1,10 @@
 import json
 import re
 
-from state import AgentState
-from llm import get_llm
-from tools import TOOL_REGISTRY, dispatch_tool
 from langchain_core.messages import HumanMessage, SystemMessage
+from llm import get_llm
+from state import AgentState
+from tools import dispatch_tool
 
 EXECUTOR_SYSTEM = """
 Execute ONE plan step. If you need a tool, respond with JSON:
@@ -22,10 +22,17 @@ async def run(state: AgentState) -> AgentState:
 
     current_step = plan[step_idx]
     llm = get_llm(1024)
-    resp = await llm.ainvoke([
-        SystemMessage(content=EXECUTOR_SYSTEM),
-        HumanMessage(content=f"Step {step_idx + 1}: {current_step}\n\nPrior results: {state.get('tool_results', [])[-3:]}"),
-    ])
+    resp = await llm.ainvoke(
+        [
+            SystemMessage(content=EXECUTOR_SYSTEM),
+            HumanMessage(
+                content=(
+                    f"Step {step_idx + 1}: {current_step}\n\n"
+                    f"Prior results: {state.get('tool_results', [])[-3:]}"
+                )
+            ),
+        ]
+    )
     text = resp.content if isinstance(resp.content, str) else str(resp.content)
 
     match = re.search(r"\{[\s\S]*\}", text)
@@ -36,7 +43,9 @@ async def run(state: AgentState) -> AgentState:
             data = json.loads(match.group())
             if data.get("tool"):
                 result = await dispatch_tool(data["tool"], data.get("input", {}))
-                tool_results.append({"step": step_idx, "tool": data["tool"], "result": result})
+                tool_results.append(
+                    {"step": step_idx, "tool": data["tool"], "result": result}
+                )
                 return {
                     **state,
                     "tool_results": tool_results,
@@ -47,7 +56,10 @@ async def run(state: AgentState) -> AgentState:
                 return {
                     **state,
                     "step": step_idx + 1,
-                    "progress_message": data.get("summary", f"Completed step {step_idx + 1}"),
+                    "progress_message": data.get(
+                        "summary",
+                        f"Completed step {step_idx + 1}",
+                    ),
                 }
         except json.JSONDecodeError:
             pass

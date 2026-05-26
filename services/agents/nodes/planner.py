@@ -1,10 +1,18 @@
-from state import AgentState
 from llm import complete_json
+from state import AgentState
 
 PLANNER_SYSTEM = """
 Break the user's task into 3–7 concrete steps. For each step, name the tool to use.
 Output JSON only: {"steps": ["Step 1: ... (tool: web_search)", ...]}
-Available tools: web_search, browse_url, read_file, write_file, list_directory, send_email, draft_email, run_code
+Available tools:
+- web_search
+- browse_url
+- read_file
+- write_file
+- list_directory
+- send_email
+- draft_email
+- run_code
 """
 
 

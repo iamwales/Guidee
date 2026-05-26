@@ -1,10 +1,18 @@
-from state import AgentState
 from llm import complete_json
+from state import AgentState
 from tools.browser import get_page_html
 
 DOM_SYSTEM = """
 Given HTML, output precise CSS selectors for interactive elements as JSON:
-{"selectors": [{"purpose": "submit button", "selector": "button[type=submit]", "confidence": 0.9}]}
+{
+  "selectors": [
+    {
+      "purpose": "submit button",
+      "selector": "button[type=submit]",
+      "confidence": 0.9
+    }
+  ]
+}
 """
 
 

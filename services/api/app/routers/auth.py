@@ -41,7 +41,9 @@ async def exchange_token(
 
 
 @router.get("/me", response_model=UserMeResponse)
-async def get_me(user: Annotated[AuthUser, Depends(get_current_user)]) -> UserMeResponse:
+async def get_me(
+    user: Annotated[AuthUser, Depends(get_current_user)],
+) -> UserMeResponse:
     return UserMeResponse(
         clerk_id=user.clerk_id,
         email=user.email,

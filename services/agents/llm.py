@@ -1,10 +1,10 @@
 import json
 import re
 
+from config import get_settings
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
-
-from config import get_settings
+from pydantic import SecretStr
 
 _client: ChatAnthropic | None = None
 
@@ -13,9 +13,9 @@ def get_llm(max_tokens: int = 1024) -> ChatAnthropic:
     global _client
     settings = get_settings()
     if _client is None:
-        _client = ChatAnthropic(
+        _client = ChatAnthropic(  # type: ignore[call-arg]
             model=settings.claude_model,
-            api_key=settings.anthropic_api_key or "placeholder",
+            api_key=SecretStr(settings.anthropic_api_key or "placeholder"),
             max_tokens=max_tokens,
         )
     return _client

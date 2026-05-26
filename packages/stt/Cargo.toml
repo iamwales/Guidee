@@ -1,0 +1,12 @@
+[package]
+name = "guidee-stt"
+version = "0.1.0"
+edition = "2021"
+description = "Whisper.cpp bindings for Guidee"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+
+[lib]
+name = "guidee_stt"
+path = "src/lib.rs"

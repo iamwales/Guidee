@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from typing import Any, cast
 
 import anthropic
 
@@ -24,33 +25,16 @@ When the user asks about something on their screen, describe what you
 see in the screenshot before answering, unless it's obvious.
 """.strip()
 
-SUPERVISOR_PROMPT = """
-You are the Guidee Supervisor. You NEVER answer the user's question or perform tasks.
-You ONLY classify the request and route it.
-
-Routes:
-- instant: quick Q&A about what's on screen, explanations, "what does this do"
-- browser: requires clicking, typing, navigating UI, exporting, filling forms
-- research: web research, finding products, summarizing topics from the web
-- file: read/summarize/analyze local files, PDFs, notes
-- email: compose, draft, or send email
-- clarify: intent is ambiguous; ask ONE short clarifying question
-
-Respond with JSON only:
-{"route": "...", "reasoning": "...", "clarify_question": null or "...", "task": null or "refined task"}
-""".strip()
-
-
 def build_messages(
     transcript: str,
     screenshot_b64: str | None,
     history: list[ChatTurn],
-) -> list[dict]:
-    messages: list[dict] = []
+) -> list[dict[str, Any]]:
+    messages: list[dict[str, Any]] = []
     for turn in history[-10:]:
         messages.append({"role": turn.role, "content": turn.content})
 
-    user_content: list[dict] = []
+    user_content: list[dict[str, Any]] = []
     if screenshot_b64:
         user_content.append(
             {
@@ -75,12 +59,14 @@ class ClaudeService:
     @property
     def client(self) -> anthropic.AsyncAnthropic:
         if self._client is None:
-            self._client = anthropic.AsyncAnthropic(api_key=self.settings.anthropic_api_key)
+            self._client = anthropic.AsyncAnthropic(
+                api_key=self.settings.anthropic_api_key
+            )
         return self._client
 
     async def stream_chat(
         self,
-        messages: list[dict],
+        messages: list[dict[str, Any]],
         system: str = SYSTEM_PROMPT,
         max_tokens: int | None = None,
     ) -> AsyncIterator[str]:
@@ -89,7 +75,7 @@ class ClaudeService:
             model=self.settings.claude_model,
             max_tokens=max_tokens,
             system=system,
-            messages=messages,
+            messages=cast(Any, messages),
         ) as stream:
             async for text in stream.text_stream:
                 yield text
@@ -101,7 +87,7 @@ class ClaudeService:
         max_tokens: int = 1024,
         image_b64: str | None = None,
     ) -> str:
-        content: list[dict] = []
+        content: list[dict[str, Any]] = []
         if image_b64:
             content.append(
                 {
@@ -119,7 +105,7 @@ class ClaudeService:
             model=self.settings.claude_model,
             max_tokens=max_tokens,
             system=system,
-            messages=[{"role": "user", "content": content}],
+            messages=cast(Any, [{"role": "user", "content": content}]),
         )
         parts = []
         for block in msg.content:

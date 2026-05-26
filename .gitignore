@@ -9,6 +9,7 @@ venv/
 # Build
 dist/
 target/
+*.tsbuildinfo
 *.egg-info/
 .turbo/
 
@@ -25,13 +26,14 @@ target/
 
 # Tauri
 apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
 
 # Logs
 *.log
 logs/
 
 # Models (Whisper / Porcupine — download separately)
-models/
+/models/
 *.bin
 *.onnx
 
@@ -46,3 +48,4 @@ htmlcov/
 
 # OS
 Thumbs.db
+Plan.md

@@ -22,7 +22,10 @@ async def create_checkout(
     settings: Annotated[Settings, Depends(get_settings)],
 ):
     if not settings.stripe_secret_key:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Billing not configured")
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Billing not configured",
+        )
     stripe.api_key = settings.stripe_secret_key
     session = stripe.checkout.Session.create(
         mode="subscription",
@@ -41,7 +44,10 @@ async def billing_portal(
 ):
     _ = user
     if not settings.stripe_secret_key:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Billing not configured")
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Billing not configured",
+        )
     return {"url": "https://billing.stripe.com/p/login/test"}
 
 

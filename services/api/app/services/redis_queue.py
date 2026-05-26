@@ -1,6 +1,7 @@
 import json
 import uuid
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 import redis.asyncio as redis
 
@@ -14,9 +15,9 @@ TASK_CHANNEL_PREFIX = "task:"
 class TaskStore:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self._redis: redis.Redis | None = None
+        self._redis: Any = None
 
-    async def connect(self) -> redis.Redis:
+    async def connect(self) -> Any:
         if self._redis is None:
             self._redis = redis.from_url(self.settings.redis_url, decode_responses=True)
         return self._redis
@@ -38,14 +39,17 @@ class TaskStore:
             "screenshot_b64": screenshot_b64,
             "status": "pending",
         }
-        await r.hset(f"{TASK_PREFIX}{task_id}", mapping={
-            "task_id": task_id,
-            "user_id": user_id,
-            "task_input": task_input,
-            "route": route,
-            "status": "pending",
-            "steps_done": "0",
-        })
+        await r.hset(
+            f"{TASK_PREFIX}{task_id}",
+            mapping={
+                "task_id": task_id,
+                "user_id": user_id,
+                "task_input": task_input,
+                "route": route,
+                "status": "pending",
+                "steps_done": "0",
+            },
+        )
         await r.lpush(TASK_QUEUE, json.dumps(payload))
         return task_id
 
@@ -56,7 +60,10 @@ class TaskStore:
 
     async def update_task(self, task_id: str, **fields: Any) -> None:
         r = await self.connect()
-        await r.hset(f"{TASK_PREFIX}{task_id}", mapping={k: str(v) for k, v in fields.items()})
+        await r.hset(
+            f"{TASK_PREFIX}{task_id}",
+            mapping={k: str(v) for k, v in fields.items()},
+        )
 
     async def cancel_task(self, task_id: str) -> bool:
         task = await self.get_task(task_id)
@@ -65,7 +72,10 @@ class TaskStore:
         if task.get("status") in ("done", "failed", "cancelled"):
             return False
         await self.update_task(task_id, status="cancelled")
-        await self.publish_progress(task_id, {"type": "error", "message": "Task cancelled"})
+        await self.publish_progress(
+            task_id,
+            {"type": "error", "message": "Task cancelled"},
+        )
         return True
 
     async def publish_progress(self, task_id: str, event: dict) -> None:

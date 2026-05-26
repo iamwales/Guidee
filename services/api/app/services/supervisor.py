@@ -1,8 +1,32 @@
 import json
 import re
+from typing import TYPE_CHECKING
 
 from app.models.schemas import SupervisorResponse
-from app.services.claude import ClaudeService, SUPERVISOR_PROMPT
+
+if TYPE_CHECKING:
+    from app.services.claude import ClaudeService
+
+SUPERVISOR_PROMPT = """
+You are the Guidee Supervisor. You NEVER answer the user's question or perform tasks.
+You ONLY classify the request and route it.
+
+Routes:
+- instant: quick Q&A about what's on screen, explanations, "what does this do"
+- browser: requires clicking, typing, navigating UI, exporting, filling forms
+- research: web research, finding products, summarizing topics from the web
+- file: read/summarize/analyze local files, PDFs, notes
+- email: compose, draft, or send email
+- clarify: intent is ambiguous; ask ONE short clarifying question
+
+Respond with JSON only:
+{
+  "route": "...",
+  "reasoning": "...",
+  "clarify_question": null or "...",
+  "task": null or "refined task"
+}
+""".strip()
 
 
 def detect_intent_prefix(transcript: str) -> tuple[str, str] | None:
@@ -15,7 +39,7 @@ def detect_intent_prefix(transcript: str) -> tuple[str, str] | None:
 
 
 async def classify_request(
-    claude: ClaudeService,
+    claude: "ClaudeService",
     transcript: str,
     screenshot_b64: str | None,
 ) -> SupervisorResponse:

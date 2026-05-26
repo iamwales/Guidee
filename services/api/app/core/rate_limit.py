@@ -1,5 +1,5 @@
 import time
-from typing import Annotated
+from typing import Annotated, Any
 
 import redis.asyncio as redis
 from fastapi import Depends, HTTPException, Request, status
@@ -10,7 +10,7 @@ from app.core.security import AuthUser, get_current_user
 _redis: redis.Redis | None = None
 
 
-async def get_redis(settings: Annotated[Settings, Depends(get_settings)]) -> redis.Redis:
+async def get_redis(settings: Annotated[Settings, Depends(get_settings)]) -> Any:
     global _redis
     if _redis is None:
         _redis = redis.from_url(settings.redis_url, decode_responses=True)
@@ -21,7 +21,7 @@ async def check_rate_limit(
     request: Request,
     user: Annotated[AuthUser, Depends(get_current_user)],
     settings: Annotated[Settings, Depends(get_settings)],
-    r: Annotated[redis.Redis, Depends(get_redis)],
+    r: Annotated[Any, Depends(get_redis)],
     limit: int,
     window_seconds: int = 60,
 ) -> None:

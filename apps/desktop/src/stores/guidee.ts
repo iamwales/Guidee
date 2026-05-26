@@ -41,7 +41,7 @@ interface GuideeStore {
 
 let msgCounter = 0;
 
-export const useGuideeStore = create<GuideeStore>((set, get) => ({
+export const useGuideeStore = create<GuideeStore>((set) => ({
   messages: [],
   agentTasks: [],
   isListening: false,

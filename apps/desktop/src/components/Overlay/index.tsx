@@ -154,7 +154,7 @@ export function Overlay() {
   );
 }
 
-function SettingsPanel({ onClose }: { onClose: () => void }) {
+export function SettingsPanel({ onClose }: { onClose: () => void }) {
   return (
     <div className="text-sm text-guidee-muted">
       <p className="mb-2 font-medium text-guidee-text">Settings</p>

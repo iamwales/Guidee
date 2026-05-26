@@ -1,4 +1,9 @@
-from state import AgentState
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from state import AgentState
+else:
+    AgentState = dict[str, Any]
 
 
 def should_continue(state: AgentState) -> str:

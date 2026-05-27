@@ -9,12 +9,6 @@ from app.models.schemas import BillingCheckoutRequest, BillingCheckoutResponse
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
-PLAN_PRICES = {
-    "pro": None,  # Set via STRIPE_PRICE_PRO env in production
-    "team": None,
-}
-
-
 @router.post("/checkout", response_model=BillingCheckoutResponse)
 async def create_checkout(
     body: BillingCheckoutRequest,
@@ -26,10 +20,19 @@ async def create_checkout(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Billing not configured",
         )
+    price_id = {
+        "pro": settings.stripe_price_pro,
+        "team": settings.stripe_price_team,
+    }.get(body.plan)
+    if not price_id:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            f"Stripe price is not configured for {body.plan}",
+        )
     stripe.api_key = settings.stripe_secret_key
     session = stripe.checkout.Session.create(
         mode="subscription",
-        line_items=[{"price": body.plan, "quantity": 1}],
+        line_items=[{"price": price_id, "quantity": 1}],
         success_url=body.success_url,
         cancel_url=body.cancel_url,
         metadata={"clerk_id": user.clerk_id, "plan": body.plan},
@@ -48,7 +51,12 @@ async def billing_portal(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Billing not configured",
         )
-    return {"url": "https://billing.stripe.com/p/login/test"}
+    if not settings.stripe_portal_url:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Billing portal not configured",
+        )
+    return {"url": settings.stripe_portal_url}
 
 
 @router.post("/webhook")

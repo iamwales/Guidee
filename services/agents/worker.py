@@ -29,6 +29,10 @@ TASK_CHANNEL_PREFIX = "task:"
 
 async def publish(r: Any, task_id: str, event: dict) -> None:
     event["task_id"] = task_id
+    if "total_steps" in event and "steps_total" not in event:
+        event["steps_total"] = event["total_steps"]
+    if "step" in event and "steps_done" not in event:
+        event["steps_done"] = event["step"]
     await r.publish(f"{TASK_CHANNEL_PREFIX}{task_id}", json.dumps(event))
     await r.hset(
         f"{TASK_PREFIX}{task_id}",
@@ -74,6 +78,18 @@ async def process_task(r: Any, payload: dict) -> None:
 
     try:
         result = await run_agent(route, initial_state)
+        current = await r.hget(f"{TASK_PREFIX}{task_id}", "status")
+        if current == "cancelled":
+            await publish(
+                r,
+                task_id,
+                {
+                    "type": "cancelled",
+                    "status": "cancelled",
+                    "message": "Task cancelled",
+                },
+            )
+            return
         final = result.get("result", "Task completed")
         await r.hset(
             f"{TASK_PREFIX}{task_id}",

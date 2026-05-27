@@ -6,6 +6,7 @@ from typing import Any
 import redis.asyncio as redis
 
 from app.core.config import Settings
+from app.services.history import HistoryStore
 
 TASK_QUEUE = "guidee:agent:queue"
 TASK_PREFIX = "guidee:task:"
@@ -55,12 +56,29 @@ class TaskStore:
             },
         )
         await r.lpush(TASK_QUEUE, json.dumps(payload))
+        await HistoryStore(self.settings).record_task_created(
+            task_id=task_id,
+            user_id=user_id,
+            task_input=task_input,
+            route=route,
+            screenshot_metadata=screenshot_metadata,
+        )
         return task_id
 
     async def get_task(self, task_id: str) -> dict[str, str] | None:
         r = await self.connect()
         data = await r.hgetall(f"{TASK_PREFIX}{task_id}")
-        return data or None
+        if not data:
+            return None
+        if data.get("status") in {"done", "failed", "cancelled"}:
+            await HistoryStore(self.settings).record_task_update(
+                task_id=task_id,
+                user_id=data.get("user_id"),
+                status=data.get("status"),
+                result=data.get("result"),
+                error=data.get("error"),
+            )
+        return data
 
     async def update_task(self, task_id: str, **fields: Any) -> None:
         r = await self.connect()
@@ -68,6 +86,17 @@ class TaskStore:
             f"{TASK_PREFIX}{task_id}",
             mapping={k: str(v) for k, v in fields.items()},
         )
+        status = str(fields["status"]) if "status" in fields else None
+        result = str(fields["result"]) if "result" in fields else None
+        error = str(fields["error"]) if "error" in fields else None
+        if status or result or error:
+            await HistoryStore(self.settings).record_task_update(
+                task_id=task_id,
+                user_id=str(fields["user_id"]) if "user_id" in fields else None,
+                status=status,
+                result=result,
+                error=error,
+            )
 
     async def cancel_task(self, task_id: str) -> bool:
         task = await self.get_task(task_id)
@@ -75,10 +104,10 @@ class TaskStore:
             return False
         if task.get("status") in ("done", "failed", "cancelled"):
             return False
-        await self.update_task(task_id, status="cancelled")
+        await self.update_task(task_id, status="cancelled", cancelled="true")
         await self.publish_progress(
             task_id,
-            {"type": "error", "message": "Task cancelled"},
+            {"type": "cancelled", "status": "cancelled", "message": "Task cancelled"},
         )
         return True
 

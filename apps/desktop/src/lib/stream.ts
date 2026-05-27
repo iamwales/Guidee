@@ -68,7 +68,9 @@ export function streamAgentProgress(
     localStorage.getItem("guidee_dev_token") ||
     import.meta.env.VITE_DEV_TOKEN ||
     "dev:local-user";
-  const url = `${getApiUrl()}/agent/${taskId}/stream`;
+  const url = `${getApiUrl()}/agent/${taskId}/stream?token=${encodeURIComponent(
+    token
+  )}`;
   const source = new EventSource(url, {
     // EventSource doesn't support custom headers — use fetch-based SSE in production
   } as EventSourceInit);

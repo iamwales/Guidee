@@ -10,12 +10,13 @@ from app.models.schemas import (
     AgentDispatchRequest,
     AgentDispatchResponse,
     AgentStatusResponse,
+    CancelTaskResponse,
     SupervisorRequest,
 )
 from app.routers.chat import get_claude
 from app.services.claude import ClaudeService
 from app.services.redis_queue import TaskStore
-from app.services.supervisor import classify_request
+from app.services.supervisor import classify_request, classify_with_rules
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
@@ -38,9 +39,10 @@ async def dispatch_agent(
 
     route = body.route
     task_text = body.task
+    agent_routes = {"browser", "research", "file", "email"}
 
     if not route:
-        if settings.anthropic_api_key:
+        if settings.has_llm_api_key:
             classification = await classify_request(
                 claude,
                 body.transcript or body.task,
@@ -60,9 +62,27 @@ async def dispatch_agent(
             route = classification.route
             task_text = classification.task or body.task
         else:
-            route = "research"
+            classification = classify_with_rules(
+                body.transcript or body.task,
+                has_screenshot=bool(body.screenshot_b64),
+            )
+            if classification and classification.route == "clarify":
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    classification.clarify_question or "Please clarify your request",
+                )
+            if classification and classification.route == "instant":
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    "This request should use /chat/stream instead",
+                )
+            route = (
+                classification.route
+                if classification and classification.route in agent_routes
+                else "research"
+            )
+            task_text = classification.task if classification else body.task
 
-    agent_routes = {"browser", "research", "file", "email"}
     if route not in agent_routes:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
@@ -146,6 +166,8 @@ async def get_status(
         steps_done=int(data.get("steps_done", 0)),
         result=data.get("result"),
         error=data.get("error"),
+        cancelled=data.get("cancelled") == "true"
+        or data.get("status") == "cancelled",
     )
 
 
@@ -162,13 +184,30 @@ async def stream_agent_progress(
     async def event_generator():
         import json
 
+        current = await tasks.get_task(task_id)
+        if current:
+            yield {
+                "event": "snapshot",
+                "data": json.dumps(
+                    {
+                        "type": "snapshot",
+                        "status": current.get("status", "unknown"),
+                        "steps_done": int(current.get("steps_done", 0)),
+                        "steps_total": int(current["steps_total"])
+                        if current.get("steps_total")
+                        else None,
+                        "result": current.get("result"),
+                        "error": current.get("error"),
+                    }
+                ),
+            }
         async for event in tasks.subscribe_progress(task_id):
             yield {"event": event.get("type", "progress"), "data": json.dumps(event)}
 
     return EventSourceResponse(event_generator())
 
 
-@router.delete("/{task_id}")
+@router.delete("/{task_id}", response_model=CancelTaskResponse)
 async def cancel_task(
     task_id: str,
     user: Annotated[AuthUser, Depends(get_current_user)],
@@ -180,4 +219,4 @@ async def cancel_task(
     ok = await tasks.cancel_task(task_id)
     if not ok:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cannot cancel task")
-    return {"status": "cancelled"}
+    return CancelTaskResponse(task_id=task_id, status="cancelled")

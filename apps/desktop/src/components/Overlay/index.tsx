@@ -53,6 +53,10 @@ export function Overlay() {
   const { handleUserRequest } = useAgent();
   const [input, setInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+  const [pendingClarification, setPendingClarification] = useState<{
+    transcript: string;
+    question: string;
+  } | null>(null);
   const inactivityRef = useRef<ReturnType<typeof setTimeout>>();
 
   const latestMessage = messages[messages.length - 1];
@@ -91,7 +95,19 @@ export function Overlay() {
             monitorId: selectedMonitorId,
           })
         : null;
-      const routed = await handleUserRequest(text, screenshot);
+      const routedTranscript = pendingClarification
+        ? `${pendingClarification.transcript}\nClarification: ${text}`
+        : text;
+      setPendingClarification(null);
+      const routed = await handleUserRequest(routedTranscript, screenshot);
+
+      if (routed?.type === "clarify") {
+        setPendingClarification({
+          transcript: routed.transcript,
+          question: routed.question,
+        });
+        return;
+      }
 
       if (routed?.type === "instant") {
         const assistantId = addMessage({

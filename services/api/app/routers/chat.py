@@ -8,7 +8,7 @@ from app.core.rate_limit import check_rate_limit, get_redis
 from app.core.security import AuthUser, get_current_user
 from app.models.schemas import ChatRequest, SupervisorRequest, SupervisorResponse
 from app.services.claude import ClaudeService, build_messages
-from app.services.supervisor import classify_request
+from app.services.supervisor import classify_request, classify_with_rules
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -25,8 +25,16 @@ async def supervisor_route(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> SupervisorResponse:
     _ = user
-    if not settings.anthropic_api_key:
-        return SupervisorResponse(route="instant", reasoning="No API key — dev mode")
+    if not settings.has_llm_api_key:
+        return classify_with_rules(
+            body.transcript,
+            has_screenshot=bool(body.screenshot_b64),
+        ) or SupervisorResponse(
+            route="instant",
+            reasoning="No API key; safe instant fallback",
+            confidence=0.4,
+            source="fallback",
+        )
     return await classify_request(
         claude,
         body.transcript,
@@ -54,8 +62,8 @@ async def stream_chat(
     )
 
     async def event_generator():
-        if not settings.anthropic_api_key:
-            yield {"data": "[Configure ANTHROPIC_API_KEY for live responses]"}
+        if not settings.has_llm_api_key:
+            yield {"data": "[Configure OPENROUTER_API_KEY for live responses]"}
             return
         async for token in claude.stream_chat(messages):
             yield {"data": token}

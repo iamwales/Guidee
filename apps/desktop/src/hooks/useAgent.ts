@@ -15,17 +15,22 @@ export function useAgent() {
     async (
       transcript: string,
       screenshot?: ScreenCapture | null
-    ): Promise<{ type: "instant"; transcript: string } | void> => {
+    ): Promise<
+      | { type: "instant"; transcript: string }
+      | { type: "clarify"; transcript: string; question: string }
+      | void
+    > => {
       const classification = await classifyIntent(transcript, screenshot);
 
       if (classification.route === "clarify") {
+        const question =
+          classification.clarify_question ??
+          "Could you clarify what you'd like me to do?";
         addMessage({
           role: "assistant",
-          content:
-            classification.clarify_question ??
-            "Could you clarify what you'd like me to do?",
+          content: question,
         });
-        return;
+        return { type: "clarify", transcript, question };
       }
 
       if (classification.route === "instant") {

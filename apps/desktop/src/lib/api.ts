@@ -30,6 +30,8 @@ export interface SupervisorResult {
   reasoning: string;
   clarify_question?: string | null;
   task?: string | null;
+  confidence: number;
+  source: "rules" | "claude" | "fallback";
 }
 
 export interface ScreenshotMetadata {

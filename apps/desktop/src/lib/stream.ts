@@ -1,6 +1,4 @@
-import { getAuthHeaders, type ChatTurn } from "./api";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { getApiUrl, getAuthHeaders, type ChatTurn } from "./api";
 
 export interface ChatPayload {
   transcript: string;
@@ -15,7 +13,7 @@ export async function streamChat(
   onError?: (err: Error) => void
 ): Promise<void> {
   try {
-    const res = await fetch(`${API_URL}/chat/stream`, {
+    const res = await fetch(`${getApiUrl()}/chat/stream`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -61,9 +59,10 @@ export function streamAgentProgress(
 ): () => void {
   const token =
     localStorage.getItem("guidee_token") ||
+    localStorage.getItem("guidee_dev_token") ||
     import.meta.env.VITE_DEV_TOKEN ||
     "dev:local-user";
-  const url = `${API_URL}/agent/${taskId}/stream`;
+  const url = `${getApiUrl()}/agent/${taskId}/stream`;
   const source = new EventSource(url, {
     // EventSource doesn't support custom headers — use fetch-based SSE in production
   } as EventSourceInit);
@@ -78,7 +77,7 @@ export function streamAgentProgress(
   };
 
   const poll = setInterval(async () => {
-    const res = await fetch(`${API_URL}/agent/${taskId}/status`, {
+    const res = await fetch(`${getApiUrl()}/agent/${taskId}/status`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {

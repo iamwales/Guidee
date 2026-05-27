@@ -1,8 +1,15 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+export function getApiUrl(): string {
+  return (
+    localStorage.getItem("guidee_api_url") ||
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:8000"
+  ).replace(/\/$/, "");
+}
 
 export function getAuthHeaders(): HeadersInit {
   const token =
     localStorage.getItem("guidee_token") ||
+    localStorage.getItem("guidee_dev_token") ||
     import.meta.env.VITE_DEV_TOKEN ||
     "dev:local-user";
   return {
@@ -27,7 +34,7 @@ export async function classifyIntent(
   transcript: string,
   screenshotB64?: string | null
 ): Promise<SupervisorResult> {
-  const res = await fetch(`${API_URL}/chat/supervisor`, {
+  const res = await fetch(`${getApiUrl()}/chat/supervisor`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
@@ -45,7 +52,7 @@ export async function dispatchAgent(
   route?: string,
   screenshotB64?: string | null
 ): Promise<{ task_id: string; route: string }> {
-  const res = await fetch(`${API_URL}/agent/dispatch`, {
+  const res = await fetch(`${getApiUrl()}/agent/dispatch`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({

@@ -3,7 +3,6 @@ mod hotkeys;
 mod tray;
 
 use commands::audio::AudioState;
-use std::sync::Arc;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -17,13 +16,12 @@ pub fn run() {
             tray::setup_tray(&handle)?;
             hotkeys::register_hotkeys(&handle)?;
 
-            app.manage(Arc::new(AudioState {
-                app: handle.clone(),
-            }));
+            app.manage(AudioState::new(handle.clone()));
 
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::screen::list_monitors,
             commands::screen::capture_screen,
             commands::audio::start_listening,
             commands::audio::stop_listening,

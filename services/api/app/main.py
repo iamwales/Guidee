@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
+from app.core.errors import install_error_handlers
+from app.core.observability import request_context_middleware
 from app.routers import agent, auth, billing, chat, user
 
 
@@ -30,6 +32,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.middleware("http")(request_context_middleware)
+    install_error_handlers(app)
 
     app.include_router(chat.router)
     app.include_router(agent.router)

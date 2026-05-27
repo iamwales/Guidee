@@ -13,7 +13,11 @@ async def run(state: AgentState) -> AgentState:
             # Re-perception loop
             result = await execute_action(action)
             if result.get("screenshot_b64"):
-                state = {**state, "screenshot_b64": result["screenshot_b64"]}
+                state = {
+                    **state,
+                    "screenshot_b64": result["screenshot_b64"],
+                    "screenshot_media_type": "image/jpeg",
+                }
                 state = await vision_agent.run(state)
             continue
 

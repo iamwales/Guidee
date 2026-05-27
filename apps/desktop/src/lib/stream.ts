@@ -1,11 +1,16 @@
-import { getAuthHeaders, type ChatTurn } from "./api";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import type { ScreenCapture } from "@/hooks/useScreen";
+import {
+  getApiUrl,
+  getAuthHeaders,
+  screenshotPayload,
+  type ChatTurn,
+} from "./api";
 
 export interface ChatPayload {
   transcript: string;
-  screenshot_b64?: string | null;
+  screenshot?: ScreenCapture | null;
   history?: ChatTurn[];
+  signal?: AbortSignal;
 }
 
 export async function streamChat(
@@ -15,12 +20,13 @@ export async function streamChat(
   onError?: (err: Error) => void
 ): Promise<void> {
   try {
-    const res = await fetch(`${API_URL}/chat/stream`, {
+    const res = await fetch(`${getApiUrl()}/chat/stream`, {
       method: "POST",
       headers: getAuthHeaders(),
+      signal: payload.signal,
       body: JSON.stringify({
         transcript: payload.transcript,
-        screenshot_b64: payload.screenshot_b64 ?? null,
+        ...screenshotPayload(payload.screenshot),
         history: payload.history ?? [],
       }),
     });
@@ -39,20 +45,32 @@ export async function streamChat(
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
+      const frames = buffer.split(/\r?\n\r?\n/);
+      buffer = frames.pop() ?? "";
 
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          const data = line.slice(6);
-          if (data && data !== "[DONE]") onToken(data);
-        }
+      for (const frame of frames) {
+        const data = parseSseData(frame);
+        if (data && data !== "[DONE]") onToken(data);
       }
     }
+    const trailing = parseSseData(buffer);
+    if (trailing && trailing !== "[DONE]") onToken(trailing);
     onDone?.();
   } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      onDone?.();
+      return;
+    }
     onError?.(e instanceof Error ? e : new Error(String(e)));
   }
+}
+
+export function parseSseData(frame: string): string | null {
+  const values = frame
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trimStart());
+  return values.length ? values.join("\n") : null;
 }
 
 export function streamAgentProgress(
@@ -61,9 +79,12 @@ export function streamAgentProgress(
 ): () => void {
   const token =
     localStorage.getItem("guidee_token") ||
+    localStorage.getItem("guidee_dev_token") ||
     import.meta.env.VITE_DEV_TOKEN ||
     "dev:local-user";
-  const url = `${API_URL}/agent/${taskId}/stream`;
+  const url = `${getApiUrl()}/agent/${taskId}/stream?token=${encodeURIComponent(
+    token
+  )}`;
   const source = new EventSource(url, {
     // EventSource doesn't support custom headers — use fetch-based SSE in production
   } as EventSourceInit);
@@ -78,7 +99,7 @@ export function streamAgentProgress(
   };
 
   const poll = setInterval(async () => {
-    const res = await fetch(`${API_URL}/agent/${taskId}/status`, {
+    const res = await fetch(`${getApiUrl()}/agent/${taskId}/status`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {

@@ -10,8 +10,9 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    anthropic_api_key: str = ""
-    claude_model: str = "claude-sonnet-4-20250514"
+    openrouter_api_key: str = ""
+    openrouter_anthropic_base_url: str = "https://openrouter.ai/api"
+    claude_model: str = "anthropic/claude-sonnet-4"
     supervisor_max_tokens: int = 256
     chat_max_tokens: int = 1024
 
@@ -31,12 +32,23 @@ class Settings(BaseSettings):
 
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
+    stripe_price_pro: str = ""
+    stripe_price_team: str = ""
+    stripe_portal_url: str = ""
 
     cors_origins: str = "http://localhost:1420,tauri://localhost"
 
     # Rate limits (requests per minute)
     rate_limit_chat: int = 30
     rate_limit_agent: int = 5
+    rate_limit_chat_pro: int = 120
+    rate_limit_agent_pro: int = 20
+    rate_limit_chat_team: int = 300
+    rate_limit_agent_team: int = 60
+
+    @property
+    def has_llm_api_key(self) -> bool:
+        return bool(self.openrouter_api_key)
 
     @property
     def cors_origin_list(self) -> list[str]:

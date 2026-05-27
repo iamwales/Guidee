@@ -60,9 +60,13 @@ async def get_current_user(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> AuthUser:
     auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
+    query_token = request.query_params.get("token")
+    if auth.startswith("Bearer "):
+        token = auth[7:].strip()
+    elif query_token:
+        token = query_token.strip()
+    else:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token")
-    token = auth[7:].strip()
     jwks = await _fetch_jwks(settings)
     payload = _decode_token(token, settings, jwks)
     clerk_id = payload.get("sub") or payload.get("user_id")

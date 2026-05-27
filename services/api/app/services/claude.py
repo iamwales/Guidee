@@ -1,3 +1,4 @@
+import base64
 from collections.abc import AsyncIterator
 from typing import Any, cast
 
@@ -25,30 +26,55 @@ When the user asks about something on their screen, describe what you
 see in the screenshot before answering, unless it's obvious.
 """.strip()
 
+FALLBACK_RESPONSE = (
+    "I can't reach the language model right now. Check the backend connection "
+    "and OPENROUTER_API_KEY, then try again."
+)
+
 def build_messages(
     transcript: str,
     screenshot_b64: str | None,
     history: list[ChatTurn],
+    screenshot_media_type: str | None = "image/jpeg",
 ) -> list[dict[str, Any]]:
     messages: list[dict[str, Any]] = []
     for turn in history[-10:]:
+        if not turn.content.strip():
+            continue
         messages.append({"role": turn.role, "content": turn.content})
 
     user_content: list[dict[str, Any]] = []
-    if screenshot_b64:
-        user_content.append(
-            {
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": "image/jpeg",
-                    "data": screenshot_b64,
-                },
-            }
-        )
+    image_block = build_image_block(screenshot_b64, screenshot_media_type)
+    if image_block:
+        user_content.append(image_block)
     user_content.append({"type": "text", "text": transcript})
     messages.append({"role": "user", "content": user_content})
     return messages
+
+
+def build_image_block(
+    screenshot_b64: str | None,
+    media_type: str | None = "image/jpeg",
+) -> dict[str, Any] | None:
+    if not screenshot_b64:
+        return None
+
+    if media_type != "image/jpeg":
+        raise ValueError("Only JPEG screenshots are supported")
+
+    data = screenshot_b64.strip()
+    if data.startswith("data:"):
+        _, _, data = data.partition(",")
+
+    base64.b64decode(data, validate=True)
+    return {
+        "type": "image",
+        "source": {
+            "type": "base64",
+            "media_type": media_type,
+            "data": data,
+        },
+    }
 
 
 class ClaudeService:
@@ -60,7 +86,8 @@ class ClaudeService:
     def client(self) -> anthropic.AsyncAnthropic:
         if self._client is None:
             self._client = anthropic.AsyncAnthropic(
-                api_key=self.settings.anthropic_api_key
+                api_key=self.settings.openrouter_api_key,
+                base_url=self.settings.openrouter_anthropic_base_url,
             )
         return self._client
 
@@ -86,19 +113,12 @@ class ClaudeService:
         system: str,
         max_tokens: int = 1024,
         image_b64: str | None = None,
+        image_media_type: str | None = "image/jpeg",
     ) -> str:
         content: list[dict[str, Any]] = []
-        if image_b64:
-            content.append(
-                {
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": "image/jpeg",
-                        "data": image_b64,
-                    },
-                }
-            )
+        image_block = build_image_block(image_b64, image_media_type)
+        if image_block:
+            content.append(image_block)
         content.append({"type": "text", "text": user_message})
 
         msg = await self.client.messages.create(

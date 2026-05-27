@@ -24,11 +24,10 @@ async def run(state: AgentState) -> AgentState:
 
     data = await complete_json(
         VISION_SYSTEM,
-        (
-            f"Task context: {state.get('task', '')}\n"
-            "[Screenshot provided as image in production]"
-        ),
+        f"Task context: {state.get('task', '')}",
         max_tokens=1024,
+        image_b64=screenshot,
+        image_media_type=state.get("screenshot_media_type") or "image/jpeg",
     )
     return {
         **state,

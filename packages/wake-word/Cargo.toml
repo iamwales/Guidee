@@ -5,8 +5,12 @@ edition = "2021"
 description = "Porcupine wake word bindings for Guidee"
 
 [dependencies]
-# Picovoice Porcupine — add pv_porcupine when access key is configured
+libloading = { version = "0.8", optional = true }
 serde = { version = "1", features = ["derive"] }
+
+[features]
+default = []
+porcupine = ["dep:libloading"]
 
 [lib]
 name = "guidee_wake_word"

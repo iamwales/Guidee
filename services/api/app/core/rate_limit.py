@@ -25,6 +25,7 @@ async def check_rate_limit(
     limit: int,
     window_seconds: int = 60,
 ) -> None:
+    limit = limit_for_plan(user.plan, request.url.path, settings, limit)
     path = request.url.path
     key = f"rl:{user.clerk_id}:{path}:{int(time.time()) // window_seconds}"
     try:
@@ -40,3 +41,19 @@ async def check_rate_limit(
     except redis.RedisError:
         # Fail open if Redis unavailable in dev
         pass
+
+
+def limit_for_plan(plan: str, path: str, settings: Settings, default: int) -> int:
+    normalized = plan.lower()
+    if "/agent" in path:
+        if normalized == "team":
+            return settings.rate_limit_agent_team
+        if normalized == "pro":
+            return settings.rate_limit_agent_pro
+        return default
+
+    if normalized == "team":
+        return settings.rate_limit_chat_team
+    if normalized == "pro":
+        return settings.rate_limit_chat_pro
+    return default

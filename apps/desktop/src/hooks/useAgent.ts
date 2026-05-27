@@ -1,5 +1,7 @@
 import { useCallback } from "react";
+import type { ScreenCapture } from "@/hooks/useScreen";
 import { classifyIntent, dispatchAgent } from "@/lib/api";
+import { notify } from "@/lib/notifications";
 import { streamAgentProgress } from "@/lib/stream";
 import { useGuideeStore, type AgentTask } from "@/stores/guidee";
 
@@ -7,22 +9,28 @@ export function useAgent() {
   const addAgentTask = useGuideeStore((s) => s.addAgentTask);
   const updateAgentTask = useGuideeStore((s) => s.updateAgentTask);
   const addMessage = useGuideeStore((s) => s.addMessage);
+  const notificationsEnabled = useGuideeStore((s) => s.notificationsEnabled);
 
   const handleUserRequest = useCallback(
     async (
       transcript: string,
-      screenshotB64?: string | null
-    ): Promise<{ type: "instant"; transcript: string } | void> => {
-      const classification = await classifyIntent(transcript, screenshotB64);
+      screenshot?: ScreenCapture | null
+    ): Promise<
+      | { type: "instant"; transcript: string }
+      | { type: "clarify"; transcript: string; question: string }
+      | void
+    > => {
+      const classification = await classifyIntent(transcript, screenshot);
 
       if (classification.route === "clarify") {
+        const question =
+          classification.clarify_question ??
+          "Could you clarify what you'd like me to do?";
         addMessage({
           role: "assistant",
-          content:
-            classification.clarify_question ??
-            "Could you clarify what you'd like me to do?",
+          content: question,
         });
-        return;
+        return { type: "clarify", transcript, question };
       }
 
       if (classification.route === "instant") {
@@ -32,7 +40,7 @@ export function useAgent() {
       const { task_id, route } = await dispatchAgent(
         classification.task ?? transcript,
         classification.route,
-        screenshotB64
+        screenshot
       );
 
       addAgentTask({
@@ -43,8 +51,9 @@ export function useAgent() {
       });
 
       streamAgentProgress(task_id, (event) => {
+        const status = (event.status as AgentTask["status"]) ?? "running";
         updateAgentTask(task_id, {
-          status: (event.status as AgentTask["status"]) ?? "running",
+          status,
           stepsDone: event.steps_done as number | undefined,
           stepsTotal: event.steps_total as number | undefined,
           progressMessage: (event.message as string) ?? undefined,
@@ -52,9 +61,30 @@ export function useAgent() {
         });
 
         if (event.type === "done" || event.status === "done") {
+          if (notificationsEnabled) {
+            void notify(
+              "Guidee task completed",
+              `${route} agent finished: ${classification.task ?? transcript}`
+            );
+          }
           addMessage({
             role: "assistant",
             content: String(event.result ?? "Task completed."),
+          });
+        }
+
+        if (event.type === "error" || event.status === "failed") {
+          if (notificationsEnabled) {
+            void notify(
+              "Guidee task failed",
+              String(event.message ?? `${route} agent could not complete.`)
+            );
+          }
+          addMessage({
+            role: "assistant",
+            content: `Agent failed: ${String(
+              event.message ?? "Unable to complete the task."
+            )}`,
           });
         }
       });
@@ -64,7 +94,7 @@ export function useAgent() {
         content: `Running ${route} agent…`,
       });
     },
-    [addAgentTask, updateAgentTask, addMessage]
+    [addAgentTask, updateAgentTask, addMessage, notificationsEnabled]
   );
 
   return { handleUserRequest };

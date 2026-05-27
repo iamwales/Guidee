@@ -1,4 +1,4 @@
-from agents.config import get_settings
+from config import get_settings
 
 
 async def run_code(code: str) -> dict:

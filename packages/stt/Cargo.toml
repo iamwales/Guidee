@@ -6,6 +6,11 @@ description = "Whisper.cpp bindings for Guidee"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+whisper-rs = { version = "0.16", optional = true }
+
+[features]
+default = []
+whisper = ["dep:whisper-rs"]
 
 [lib]
 name = "guidee_stt"

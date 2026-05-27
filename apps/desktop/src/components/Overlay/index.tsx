@@ -34,6 +34,8 @@ export function Overlay() {
   const isThinking = useGuideeStore((s) => s.isThinking);
   const messages = useGuideeStore((s) => s.messages);
   const autoCapture = useGuideeStore((s) => s.autoCapture);
+  const voiceStatus = useGuideeStore((s) => s.voiceStatus);
+  const voiceError = useGuideeStore((s) => s.voiceError);
   const setOverlayExpanded = useGuideeStore((s) => s.setOverlayExpanded);
   const setOverlayVisible = useGuideeStore((s) => s.setOverlayVisible);
   const setOverlayPinned = useGuideeStore((s) => s.setOverlayPinned);
@@ -205,7 +207,12 @@ export function Overlay() {
             <Sparkles className="h-4 w-4 text-guidee-accent" />
           )}
           <span className="max-w-[200px] truncate">
-            {latestMessage?.content.slice(0, 60) || "Ask Guidee anything…"}
+            {voiceError ||
+              (voiceStatus === "recording"
+                ? "Listening…"
+                : voiceStatus === "waitingWake"
+                  ? "Waiting for wake word…"
+                : latestMessage?.content.slice(0, 60) || "Ask Guidee anything…")}
           </span>
         </button>
 

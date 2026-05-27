@@ -37,6 +37,14 @@ interface GuideeStore {
   devToken: string;
   autoCapture: boolean;
   notificationsEnabled: boolean;
+  voiceStatus: "idle" | "waitingWake" | "listening" | "recording" | "error";
+  voiceError: string | null;
+  whisperModelPath: string;
+  picovoiceAccessKey: string;
+  wakeWordModelPath: string;
+  wakeWordKeywordPath: string;
+  wakeWordEnabled: boolean;
+  wakeWordSensitivity: number;
 
   addMessage: (msg: NewMessage) => string;
   clearMessages: () => void;
@@ -55,6 +63,14 @@ interface GuideeStore {
   setDevToken: (token: string) => void;
   setAutoCapture: (v: boolean) => void;
   setNotificationsEnabled: (v: boolean) => void;
+  setVoiceStatus: (status: GuideeStore["voiceStatus"]) => void;
+  setVoiceError: (message: string | null) => void;
+  setWhisperModelPath: (path: string) => void;
+  setPicovoiceAccessKey: (key: string) => void;
+  setWakeWordModelPath: (path: string) => void;
+  setWakeWordKeywordPath: (path: string) => void;
+  setWakeWordEnabled: (v: boolean) => void;
+  setWakeWordSensitivity: (v: number) => void;
 }
 
 let msgCounter = 0;
@@ -75,6 +91,20 @@ export const useGuideeStore = create<GuideeStore>((set) => ({
   autoCapture: localStorage.getItem("guidee_auto_capture") !== "false",
   notificationsEnabled:
     localStorage.getItem("guidee_notifications_enabled") !== "false",
+  voiceStatus: "idle",
+  voiceError: null,
+  whisperModelPath:
+    localStorage.getItem("guidee_whisper_model_path") ??
+    "models/whisper-base.en.bin",
+  picovoiceAccessKey: localStorage.getItem("guidee_picovoice_access_key") ?? "",
+  wakeWordModelPath:
+    localStorage.getItem("guidee_wake_word_model_path") ?? "",
+  wakeWordKeywordPath:
+    localStorage.getItem("guidee_wake_word_keyword_path") ?? "",
+  wakeWordEnabled: localStorage.getItem("guidee_wake_word_enabled") === "true",
+  wakeWordSensitivity: Number(
+    localStorage.getItem("guidee_wake_word_sensitivity") ?? "0.5"
+  ),
 
   addMessage: (msg) => {
     const id = `msg-${++msgCounter}`;
@@ -144,5 +174,31 @@ export const useGuideeStore = create<GuideeStore>((set) => ({
   setNotificationsEnabled: (v) => {
     localStorage.setItem("guidee_notifications_enabled", String(v));
     set({ notificationsEnabled: v });
+  },
+  setVoiceStatus: (status) => set({ voiceStatus: status }),
+  setVoiceError: (message) => set({ voiceError: message }),
+  setWhisperModelPath: (path) => {
+    localStorage.setItem("guidee_whisper_model_path", path);
+    set({ whisperModelPath: path });
+  },
+  setPicovoiceAccessKey: (key) => {
+    localStorage.setItem("guidee_picovoice_access_key", key);
+    set({ picovoiceAccessKey: key });
+  },
+  setWakeWordModelPath: (path) => {
+    localStorage.setItem("guidee_wake_word_model_path", path);
+    set({ wakeWordModelPath: path });
+  },
+  setWakeWordKeywordPath: (path) => {
+    localStorage.setItem("guidee_wake_word_keyword_path", path);
+    set({ wakeWordKeywordPath: path });
+  },
+  setWakeWordEnabled: (v) => {
+    localStorage.setItem("guidee_wake_word_enabled", String(v));
+    set({ wakeWordEnabled: v });
+  },
+  setWakeWordSensitivity: (v) => {
+    localStorage.setItem("guidee_wake_word_sensitivity", String(v));
+    set({ wakeWordSensitivity: v });
   },
 }));

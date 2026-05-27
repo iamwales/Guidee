@@ -1,6 +1,6 @@
 import { ensureNotificationPermission } from "@/lib/notifications";
 import { useGuideeStore } from "@/stores/guidee";
-import { Bell, Camera, Check, KeyRound, Server, X } from "lucide-react";
+import { Bell, Camera, Check, KeyRound, Mic, Server, X } from "lucide-react";
 import { useState } from "react";
 
 interface SettingsPanelProps {
@@ -12,20 +12,47 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const devToken = useGuideeStore((s) => s.devToken);
   const autoCapture = useGuideeStore((s) => s.autoCapture);
   const notificationsEnabled = useGuideeStore((s) => s.notificationsEnabled);
+  const voiceError = useGuideeStore((s) => s.voiceError);
+  const whisperModelPath = useGuideeStore((s) => s.whisperModelPath);
+  const picovoiceAccessKey = useGuideeStore((s) => s.picovoiceAccessKey);
+  const wakeWordModelPath = useGuideeStore((s) => s.wakeWordModelPath);
+  const wakeWordKeywordPath = useGuideeStore((s) => s.wakeWordKeywordPath);
+  const wakeWordEnabled = useGuideeStore((s) => s.wakeWordEnabled);
+  const wakeWordSensitivity = useGuideeStore((s) => s.wakeWordSensitivity);
   const setApiUrl = useGuideeStore((s) => s.setApiUrl);
   const setDevToken = useGuideeStore((s) => s.setDevToken);
   const setAutoCapture = useGuideeStore((s) => s.setAutoCapture);
   const setNotificationsEnabled = useGuideeStore(
     (s) => s.setNotificationsEnabled
   );
+  const setWhisperModelPath = useGuideeStore((s) => s.setWhisperModelPath);
+  const setPicovoiceAccessKey = useGuideeStore((s) => s.setPicovoiceAccessKey);
+  const setWakeWordModelPath = useGuideeStore((s) => s.setWakeWordModelPath);
+  const setWakeWordKeywordPath = useGuideeStore(
+    (s) => s.setWakeWordKeywordPath
+  );
+  const setWakeWordEnabled = useGuideeStore((s) => s.setWakeWordEnabled);
+  const setWakeWordSensitivity = useGuideeStore(
+    (s) => s.setWakeWordSensitivity
+  );
 
   const [draftApiUrl, setDraftApiUrl] = useState(apiUrl);
   const [draftToken, setDraftToken] = useState(devToken);
+  const [draftModelPath, setDraftModelPath] = useState(whisperModelPath);
+  const [draftPicovoiceKey, setDraftPicovoiceKey] = useState(picovoiceAccessKey);
+  const [draftWakeModelPath, setDraftWakeModelPath] =
+    useState(wakeWordModelPath);
+  const [draftWakeKeywordPath, setDraftWakeKeywordPath] =
+    useState(wakeWordKeywordPath);
   const [saved, setSaved] = useState(false);
 
   const save = () => {
     setApiUrl(draftApiUrl);
     setDevToken(draftToken);
+    setWhisperModelPath(draftModelPath);
+    setPicovoiceAccessKey(draftPicovoiceKey);
+    setWakeWordModelPath(draftWakeModelPath);
+    setWakeWordKeywordPath(draftWakeKeywordPath);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1400);
   };
@@ -92,6 +119,45 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         />
       </label>
 
+      <label className="block space-y-1">
+        <span className="flex items-center gap-2 text-xs font-medium text-guidee-muted">
+          <KeyRound className="h-3.5 w-3.5" />
+          Picovoice access key
+        </span>
+        <input
+          type="password"
+          value={draftPicovoiceKey}
+          onChange={(event) => setDraftPicovoiceKey(event.target.value)}
+          className="w-full rounded-md border border-guidee-border bg-guidee-surface px-3 py-2 text-guidee-text outline-none focus:border-guidee-accent"
+        />
+      </label>
+
+      <label className="block space-y-1">
+        <span className="flex items-center gap-2 text-xs font-medium text-guidee-muted">
+          <Mic className="h-3.5 w-3.5" />
+          Wake model path
+        </span>
+        <input
+          placeholder="Bundled Porcupine model"
+          value={draftWakeModelPath}
+          onChange={(event) => setDraftWakeModelPath(event.target.value)}
+          className="w-full rounded-md border border-guidee-border bg-guidee-surface px-3 py-2 text-guidee-text outline-none focus:border-guidee-accent"
+        />
+      </label>
+
+      <label className="block space-y-1">
+        <span className="flex items-center gap-2 text-xs font-medium text-guidee-muted">
+          <Mic className="h-3.5 w-3.5" />
+          Wake keyword path
+        </span>
+        <input
+          placeholder="Bundled Picovoice keyword"
+          value={draftWakeKeywordPath}
+          onChange={(event) => setDraftWakeKeywordPath(event.target.value)}
+          className="w-full rounded-md border border-guidee-border bg-guidee-surface px-3 py-2 text-guidee-text outline-none focus:border-guidee-accent"
+        />
+      </label>
+
       <label className="flex items-center justify-between rounded-md border border-guidee-border bg-guidee-surface px-3 py-2">
         <span className="flex items-center gap-2 text-guidee-text">
           <Bell className="h-4 w-4 text-guidee-accent" />
@@ -104,6 +170,57 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           className="h-4 w-4 accent-guidee-accent"
         />
       </label>
+
+      <label className="block space-y-1">
+        <span className="flex items-center gap-2 text-xs font-medium text-guidee-muted">
+          <Mic className="h-3.5 w-3.5" />
+          Whisper model path
+        </span>
+        <input
+          value={draftModelPath}
+          onChange={(event) => setDraftModelPath(event.target.value)}
+          className="w-full rounded-md border border-guidee-border bg-guidee-surface px-3 py-2 text-guidee-text outline-none focus:border-guidee-accent"
+        />
+      </label>
+
+      <label className="flex items-center justify-between rounded-md border border-guidee-border bg-guidee-surface px-3 py-2">
+        <span className="flex items-center gap-2 text-guidee-text">
+          <Mic className="h-4 w-4 text-guidee-accent" />
+          Wake word detection
+        </span>
+        <input
+          type="checkbox"
+          checked={wakeWordEnabled}
+          onChange={(event) => setWakeWordEnabled(event.target.checked)}
+          className="h-4 w-4 accent-guidee-accent"
+        />
+      </label>
+
+      <label className="block space-y-2 rounded-md border border-guidee-border bg-guidee-surface px-3 py-2">
+        <span className="flex items-center justify-between text-guidee-text">
+          <span>Wake sensitivity</span>
+          <span className="text-xs text-guidee-muted">
+            {wakeWordSensitivity.toFixed(2)}
+          </span>
+        </span>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={wakeWordSensitivity}
+          onChange={(event) =>
+            setWakeWordSensitivity(Number(event.target.value))
+          }
+          className="w-full accent-guidee-accent"
+        />
+      </label>
+
+      {voiceError ? (
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+          {voiceError}
+        </div>
+      ) : null}
 
       <button
         type="button"

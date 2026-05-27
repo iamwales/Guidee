@@ -194,7 +194,7 @@ guidee/
 - [Node.js](https://nodejs.org/) (20+)
 - [Python](https://python.org/) (3.11+)
 - [Tauri CLI](https://tauri.app/v1/guides/getting-started/prerequisites)
-- An [Anthropic API key](https://console.anthropic.com/)
+- An [OpenRouter API key](https://openrouter.ai/settings/keys/)
 
 ### Installation
 
@@ -223,7 +223,8 @@ VITE_API_URL=http://localhost:8000
 VITE_CLERK_PUBLISHABLE_KEY=your_clerk_key
 
 # services/api/.env
-ANTHROPIC_API_KEY=your_anthropic_key
+OPENROUTER_API_KEY=your_openrouter_key
+CLAUDE_MODEL=anthropic/claude-sonnet-4
 SUPABASE_URL=your_supabase_url
 SUPABASE_KEY=your_supabase_key
 CLERK_SECRET_KEY=your_clerk_secret

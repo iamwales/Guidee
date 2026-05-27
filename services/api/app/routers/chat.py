@@ -7,7 +7,7 @@ from app.core.config import Settings, get_settings
 from app.core.rate_limit import check_rate_limit, get_redis
 from app.core.security import AuthUser, get_current_user
 from app.models.schemas import ChatRequest, SupervisorRequest, SupervisorResponse
-from app.services.claude import ClaudeService, build_messages
+from app.services.claude import FALLBACK_RESPONSE, ClaudeService, build_messages
 from app.services.supervisor import classify_request, classify_with_rules
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -63,9 +63,14 @@ async def stream_chat(
 
     async def event_generator():
         if not settings.has_llm_api_key:
-            yield {"data": "[Configure OPENROUTER_API_KEY for live responses]"}
+            yield {"data": FALLBACK_RESPONSE}
             return
-        async for token in claude.stream_chat(messages):
-            yield {"data": token}
+        try:
+            async for token in claude.stream_chat(messages):
+                if await request.is_disconnected():
+                    break
+                yield {"data": token}
+        except Exception:
+            yield {"data": FALLBACK_RESPONSE}
 
     return EventSourceResponse(event_generator())

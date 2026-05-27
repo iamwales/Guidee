@@ -23,7 +23,7 @@
 
 ## Third parties
 
-- **Anthropic** — inference only; per their API terms
+- **OpenRouter** — routes inference requests to Claude Sonnet 4
 - **Clerk** — authentication
 - **Supabase** — encrypted Postgres
 - **Stripe** — billing (no screen/audio data)

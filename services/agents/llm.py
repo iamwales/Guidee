@@ -3,22 +3,19 @@ import json
 import re
 from typing import Any
 
+import anthropic
 from config import get_settings
-from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import HumanMessage, SystemMessage
-from pydantic import SecretStr
 
-_client: ChatAnthropic | None = None
+_client: anthropic.AsyncAnthropic | None = None
 
 
-def get_llm(max_tokens: int = 1024) -> ChatAnthropic:
+def get_llm() -> anthropic.AsyncAnthropic:
     global _client
     settings = get_settings()
     if _client is None:
-        _client = ChatAnthropic(  # type: ignore[call-arg]
-            model=settings.claude_model,
-            api_key=SecretStr(settings.anthropic_api_key or "placeholder"),
-            max_tokens=max_tokens,
+        _client = anthropic.AsyncAnthropic(
+            api_key=settings.openrouter_api_key,
+            base_url=settings.openrouter_anthropic_base_url,
         )
     return _client
 
@@ -48,18 +45,25 @@ async def complete_json(
     image_b64: str | None = None,
     image_media_type: str = "image/jpeg",
 ) -> dict:
-    llm = get_llm(max_tokens)
-    user_content: str | list[dict[str, Any]]
+    settings = get_settings()
+    llm = get_llm()
+    user_content: list[dict[str, Any]]
     if image_b64:
         user_content = [
             _image_content(image_b64, image_media_type),
             {"type": "text", "text": user},
         ]
     else:
-        user_content = user
-    messages = [SystemMessage(content=system), HumanMessage(content=user_content)]
-    resp = await llm.ainvoke(messages)
-    text = resp.content if isinstance(resp.content, str) else str(resp.content)
+        user_content = [{"type": "text", "text": user}]
+    resp = await llm.messages.create(
+        model=settings.claude_model,
+        max_tokens=max_tokens,
+        system=system,
+        messages=[{"role": "user", "content": user_content}],
+    )
+    text = "".join(
+        block.text for block in resp.content if getattr(block, "type", None) == "text"
+    )
     match = re.search(r"\{[\s\S]*\}", text)
     if not match:
         return {}

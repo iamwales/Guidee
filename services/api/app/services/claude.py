@@ -26,6 +26,11 @@ When the user asks about something on their screen, describe what you
 see in the screenshot before answering, unless it's obvious.
 """.strip()
 
+FALLBACK_RESPONSE = (
+    "I can't reach the language model right now. Check the backend connection "
+    "and OPENROUTER_API_KEY, then try again."
+)
+
 def build_messages(
     transcript: str,
     screenshot_b64: str | None,
@@ -34,6 +39,8 @@ def build_messages(
 ) -> list[dict[str, Any]]:
     messages: list[dict[str, Any]] = []
     for turn in history[-10:]:
+        if not turn.content.strip():
+            continue
         messages.append({"role": turn.role, "content": turn.content})
 
     user_content: list[dict[str, Any]] = []
@@ -79,7 +86,8 @@ class ClaudeService:
     def client(self) -> anthropic.AsyncAnthropic:
         if self._client is None:
             self._client = anthropic.AsyncAnthropic(
-                api_key=self.settings.anthropic_api_key
+                api_key=self.settings.openrouter_api_key,
+                base_url=self.settings.openrouter_anthropic_base_url,
             )
         return self._client
 

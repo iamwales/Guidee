@@ -22,6 +22,7 @@ import { useScreen } from "@/hooks/useScreen";
 import { useVoice } from "@/hooks/useVoice";
 import { useAgent } from "@/hooks/useAgent";
 import { streamChat } from "@/lib/stream";
+import type { ChatTurn } from "@/lib/api";
 
 const INACTIVITY_MS = 30_000;
 
@@ -57,6 +58,8 @@ export function Overlay() {
     transcript: string;
     question: string;
   } | null>(null);
+  const [canCancelResponse, setCanCancelResponse] = useState(false);
+  const streamAbortRef = useRef<AbortController | null>(null);
   const inactivityRef = useRef<ReturnType<typeof setTimeout>>();
 
   const latestMessage = messages[messages.length - 1];
@@ -81,6 +84,13 @@ export function Overlay() {
     if (!text) return;
     setInput("");
     addMessage({ role: "user", content: text });
+    const history: ChatTurn[] = messages
+      .filter((message) => message.content.trim() && !message.streaming)
+      .slice(-10)
+      .map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
     setThinking(true);
     resetInactivity();
 
@@ -110,13 +120,21 @@ export function Overlay() {
       }
 
       if (routed?.type === "instant") {
+        const controller = new AbortController();
+        streamAbortRef.current = controller;
+        setCanCancelResponse(true);
         const assistantId = addMessage({
           role: "assistant",
           content: "",
           streaming: true,
         });
         await streamChat(
-          { transcript: text, screenshot },
+          {
+            transcript: routedTranscript,
+            screenshot,
+            history,
+            signal: controller.signal,
+          },
           (token) => appendToMessage(assistantId, token),
           () => updateMessage(assistantId, { streaming: false }),
           (err) =>
@@ -134,8 +152,17 @@ export function Overlay() {
         }`,
       });
     } finally {
+      streamAbortRef.current = null;
+      setCanCancelResponse(false);
       setThinking(false);
     }
+  };
+
+  const cancelCurrentResponse = () => {
+    streamAbortRef.current?.abort();
+    streamAbortRef.current = null;
+    setCanCancelResponse(false);
+    setThinking(false);
   };
 
   if (!overlayVisible) return null;
@@ -207,6 +234,7 @@ export function Overlay() {
                 input={input}
                 onInputChange={setInput}
                 onSubmit={submit}
+                onCancel={canCancelResponse ? cancelCurrentResponse : undefined}
                 onClear={clearMessages}
                 isThinking={isThinking}
               />

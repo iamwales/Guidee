@@ -10,6 +10,7 @@ export interface ChatPayload {
   transcript: string;
   screenshot?: ScreenCapture | null;
   history?: ChatTurn[];
+  signal?: AbortSignal;
 }
 
 export async function streamChat(
@@ -22,6 +23,7 @@ export async function streamChat(
     const res = await fetch(`${getApiUrl()}/chat/stream`, {
       method: "POST",
       headers: getAuthHeaders(),
+      signal: payload.signal,
       body: JSON.stringify({
         transcript: payload.transcript,
         ...screenshotPayload(payload.screenshot),
@@ -43,20 +45,32 @@ export async function streamChat(
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
+      const frames = buffer.split(/\r?\n\r?\n/);
+      buffer = frames.pop() ?? "";
 
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          const data = line.slice(6);
-          if (data && data !== "[DONE]") onToken(data);
-        }
+      for (const frame of frames) {
+        const data = parseSseData(frame);
+        if (data && data !== "[DONE]") onToken(data);
       }
     }
+    const trailing = parseSseData(buffer);
+    if (trailing && trailing !== "[DONE]") onToken(trailing);
     onDone?.();
   } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      onDone?.();
+      return;
+    }
     onError?.(e instanceof Error ? e : new Error(String(e)));
   }
+}
+
+export function parseSseData(frame: string): string | null {
+  const values = frame
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trimStart());
+  return values.length ? values.join("\n") : null;
 }
 
 export function streamAgentProgress(

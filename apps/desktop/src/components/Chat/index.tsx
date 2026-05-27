@@ -1,6 +1,6 @@
 import type { Message } from "@/stores/guidee";
 import { clsx } from "clsx";
-import { Loader2, Send, Trash2 } from "lucide-react";
+import { Loader2, Send, Square, Trash2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 interface ChatPanelProps {
@@ -8,6 +8,7 @@ interface ChatPanelProps {
   input: string;
   onInputChange: (v: string) => void;
   onSubmit: () => void;
+  onCancel?: () => void;
   onClear: () => void;
   isThinking: boolean;
 }
@@ -17,6 +18,7 @@ export function ChatPanel({
   input,
   onInputChange,
   onSubmit,
+  onCancel,
   onClear,
   isThinking,
 }: ChatPanelProps) {
@@ -99,13 +101,24 @@ export function ChatPanel({
           placeholder="Type a message…"
           className="min-w-0 flex-1 rounded-lg border border-guidee-border bg-guidee-surface px-3 py-2 text-sm text-guidee-text placeholder:text-guidee-muted focus:border-guidee-accent focus:outline-none"
         />
-        <button
-          type="submit"
-          disabled={!input.trim() || isThinking}
-          className="rounded-lg bg-guidee-accent p-2 text-white transition-colors hover:bg-guidee-accentHover disabled:opacity-50"
-        >
-          <Send className="h-4 w-4" />
-        </button>
+        {isThinking && onCancel ? (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg bg-red-500/20 p-2 text-red-300 transition-colors hover:bg-red-500/30"
+            title="Cancel response"
+          >
+            <Square className="h-4 w-4" />
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={!input.trim() || isThinking}
+            className="rounded-lg bg-guidee-accent p-2 text-white transition-colors hover:bg-guidee-accentHover disabled:opacity-50"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        )}
       </form>
     </div>
   );

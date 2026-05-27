@@ -6,6 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from app.models.schemas import ChatTurn
 from app.services.claude import build_messages
 from app.services.supervisor import (
     classify_request,
@@ -118,6 +119,24 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(messages[-1]["content"][0]["source"]["data"], screenshot)
+
+    def test_build_messages_includes_recent_non_empty_history(self):
+        history = [
+            ChatTurn(role="user", content=""),
+            ChatTurn(role="user", content="previous question"),
+            ChatTurn(role="assistant", content="previous answer"),
+        ]
+        messages = build_messages("follow up", None, history)
+
+        self.assertEqual(messages[0], {"role": "user", "content": "previous question"})
+        self.assertEqual(
+            messages[1],
+            {"role": "assistant", "content": "previous answer"},
+        )
+        self.assertEqual(
+            messages[-1]["content"],
+            [{"type": "text", "text": "follow up"}],
+        )
 
 
 if __name__ == "__main__":

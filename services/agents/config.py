@@ -14,6 +14,10 @@ class AgentSettings(BaseSettings):
     e2b_api_key: str = ""
     langsmith_api_key: str = ""
     langsmith_project: str = "guidee"
+    worker_concurrency: int = 2
+    agent_task_timeout_seconds: int = 300
+    agent_node_retry_attempts: int = 1
+    worker_health_interval_seconds: int = 30
 
 
 @lru_cache

@@ -7,7 +7,9 @@ Redis queue worker — pulls agent tasks and runs LangGraph graphs.
 import asyncio
 import json
 import logging
+import os
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +27,15 @@ logger = logging.getLogger("guidee.worker")
 TASK_QUEUE = "guidee:agent:queue"
 TASK_PREFIX = "guidee:task:"
 TASK_CHANNEL_PREFIX = "task:"
+WORKER_HEALTH_KEY = "guidee:worker:health"
+
+
+def configure_tracing(settings: Any) -> None:
+    if not settings.langsmith_api_key:
+        return
+    os.environ.setdefault("LANGSMITH_TRACING", "true")
+    os.environ.setdefault("LANGSMITH_API_KEY", settings.langsmith_api_key)
+    os.environ.setdefault("LANGSMITH_PROJECT", settings.langsmith_project)
 
 
 async def publish(r: Any, task_id: str, event: dict) -> None:
@@ -38,6 +49,28 @@ async def publish(r: Any, task_id: str, event: dict) -> None:
         f"{TASK_PREFIX}{task_id}",
         mapping={k: str(v) for k, v in event.items() if v is not None},
     )
+
+
+async def is_cancelled(r: Any, task_id: str) -> bool:
+    return await r.hget(f"{TASK_PREFIX}{task_id}", "status") == "cancelled"
+
+
+async def heartbeat_loop(r: Any, settings: Any) -> None:
+    interval = max(5, int(settings.worker_health_interval_seconds))
+    while True:
+        try:
+            await r.hset(
+                WORKER_HEALTH_KEY,
+                mapping={
+                    "status": "ok",
+                    "updated_at": str(int(time.time())),
+                    "concurrency": str(settings.worker_concurrency),
+                },
+            )
+            await r.expire(WORKER_HEALTH_KEY, interval * 3)
+        except redis.RedisError:
+            logger.exception("Worker heartbeat failed")
+        await asyncio.sleep(interval)
 
 
 async def process_task(r: Any, payload: dict) -> None:
@@ -77,9 +110,20 @@ async def process_task(r: Any, payload: dict) -> None:
     }
 
     try:
-        result = await run_agent(route, initial_state)
-        current = await r.hget(f"{TASK_PREFIX}{task_id}", "status")
-        if current == "cancelled":
+        settings = get_settings()
+
+        async def progress(event: dict) -> None:
+            await publish(r, task_id, event)
+
+        result = await run_agent(
+            route,
+            initial_state,
+            on_progress=progress,
+            is_cancelled=lambda: is_cancelled(r, task_id),
+            timeout_seconds=settings.agent_task_timeout_seconds,
+            retry_attempts=settings.agent_node_retry_attempts,
+        )
+        if result.get("status") == "cancelled" or await is_cancelled(r, task_id):
             await publish(
                 r,
                 task_id,
@@ -122,13 +166,31 @@ async def process_task(r: Any, payload: dict) -> None:
         )
 
 
+async def worker_task(r: Any, payload: dict, semaphore: asyncio.Semaphore) -> None:
+    async with semaphore:
+        await process_task(r, payload)
+
+
 async def worker_loop() -> None:
     settings = get_settings()
+    configure_tracing(settings)
     r: Any = redis.from_url(settings.redis_url, decode_responses=True)
-    logger.info("Worker listening on %s", TASK_QUEUE)
+    semaphore = asyncio.Semaphore(max(1, settings.worker_concurrency))
+    background: set[asyncio.Task] = {
+        asyncio.create_task(heartbeat_loop(r, settings)),
+    }
+    logger.info(
+        "Worker listening on %s with concurrency=%s",
+        TASK_QUEUE,
+        settings.worker_concurrency,
+    )
 
     while True:
         try:
+            done = {task for task in background if task.done()}
+            for task in done:
+                background.remove(task)
+                task.result()
             item = await r.brpop(TASK_QUEUE, timeout=5)
             if not item:
                 continue
@@ -138,7 +200,7 @@ async def worker_loop() -> None:
             current = await r.hget(f"{TASK_PREFIX}{task_id}", "status")
             if current == "cancelled":
                 continue
-            await process_task(r, payload)
+            background.add(asyncio.create_task(worker_task(r, payload, semaphore)))
         except redis.RedisError as e:
             logger.error("Redis error: %s", e)
             await asyncio.sleep(2)

@@ -2,7 +2,7 @@ from tools.browser import browse_url
 from tools.code_exec import run_code
 from tools.email import draft_email, send_email
 from tools.filesystem import list_directory, read_file, write_file
-from tools.web_search import web_search
+from tools.web_search import fetch_url, web_search
 
 TOOL_REGISTRY = {
     "web_search": web_search,
@@ -13,6 +13,7 @@ TOOL_REGISTRY = {
     "send_email": send_email,
     "draft_email": draft_email,
     "run_code": run_code,
+    "fetch_url": fetch_url,
 }
 
 

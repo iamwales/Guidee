@@ -1,5 +1,7 @@
+import base64
 import json
 import re
+from typing import Any
 
 from config import get_settings
 from langchain_anthropic import ChatAnthropic
@@ -21,9 +23,41 @@ def get_llm(max_tokens: int = 1024) -> ChatAnthropic:
     return _client
 
 
-async def complete_json(system: str, user: str, max_tokens: int = 1024) -> dict:
+def _image_content(image_b64: str, media_type: str = "image/jpeg") -> dict[str, Any]:
+    if media_type != "image/jpeg":
+        raise ValueError("Only JPEG screenshots are supported")
+
+    data = image_b64.strip()
+    if data.startswith("data:"):
+        _, _, data = data.partition(",")
+    base64.b64decode(data, validate=True)
+    return {
+        "type": "image",
+        "source": {
+            "type": "base64",
+            "media_type": media_type,
+            "data": data,
+        },
+    }
+
+
+async def complete_json(
+    system: str,
+    user: str,
+    max_tokens: int = 1024,
+    image_b64: str | None = None,
+    image_media_type: str = "image/jpeg",
+) -> dict:
     llm = get_llm(max_tokens)
-    messages = [SystemMessage(content=system), HumanMessage(content=user)]
+    user_content: str | list[dict[str, Any]]
+    if image_b64:
+        user_content = [
+            _image_content(image_b64, image_media_type),
+            {"type": "text", "text": user},
+        ]
+    else:
+        user_content = user
+    messages = [SystemMessage(content=system), HumanMessage(content=user_content)]
     resp = await llm.ainvoke(messages)
     text = resp.content if isinstance(resp.content, str) else str(resp.content)
     match = re.search(r"\{[\s\S]*\}", text)

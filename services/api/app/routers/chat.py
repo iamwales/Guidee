@@ -27,7 +27,12 @@ async def supervisor_route(
     _ = user
     if not settings.anthropic_api_key:
         return SupervisorResponse(route="instant", reasoning="No API key — dev mode")
-    return await classify_request(claude, body.transcript, body.screenshot_b64)
+    return await classify_request(
+        claude,
+        body.transcript,
+        body.screenshot_b64,
+        body.screenshot_media_type,
+    )
 
 
 @router.post("/stream")
@@ -41,7 +46,12 @@ async def stream_chat(
     r = await get_redis(settings)
     await check_rate_limit(request, user, settings, r, settings.rate_limit_chat)
 
-    messages = build_messages(body.transcript, body.screenshot_b64, body.history)
+    messages = build_messages(
+        body.transcript,
+        body.screenshot_b64,
+        body.history,
+        body.screenshot_media_type,
+    )
 
     async def event_generator():
         if not settings.anthropic_api_key:

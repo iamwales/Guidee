@@ -1,8 +1,14 @@
-import { getApiUrl, getAuthHeaders, type ChatTurn } from "./api";
+import type { ScreenCapture } from "@/hooks/useScreen";
+import {
+  getApiUrl,
+  getAuthHeaders,
+  screenshotPayload,
+  type ChatTurn,
+} from "./api";
 
 export interface ChatPayload {
   transcript: string;
-  screenshot_b64?: string | null;
+  screenshot?: ScreenCapture | null;
   history?: ChatTurn[];
 }
 
@@ -18,7 +24,7 @@ export async function streamChat(
       headers: getAuthHeaders(),
       body: JSON.stringify({
         transcript: payload.transcript,
-        screenshot_b64: payload.screenshot_b64 ?? null,
+        ...screenshotPayload(payload.screenshot),
         history: payload.history ?? [],
       }),
     });

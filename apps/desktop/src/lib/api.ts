@@ -1,3 +1,5 @@
+import type { ScreenCapture } from "@/hooks/useScreen";
+
 export function getApiUrl(): string {
   return (
     localStorage.getItem("guidee_api_url") ||
@@ -30,16 +32,58 @@ export interface SupervisorResult {
   task?: string | null;
 }
 
+export interface ScreenshotMetadata {
+  source: ScreenCapture["source"];
+  monitor_id?: number | null;
+  monitor_name?: string | null;
+  width: number;
+  height: number;
+  original_width: number;
+  original_height: number;
+  quality: number;
+  byte_size: number;
+}
+
+export function screenshotPayload(capture?: ScreenCapture | null): {
+  screenshot_b64: string | null;
+  screenshot_media_type: ScreenCapture["mediaType"] | null;
+  screenshot_metadata: ScreenshotMetadata | null;
+} {
+  if (!capture) {
+    return {
+      screenshot_b64: null,
+      screenshot_media_type: null,
+      screenshot_metadata: null,
+    };
+  }
+
+  return {
+    screenshot_b64: capture.imageB64,
+    screenshot_media_type: capture.mediaType,
+    screenshot_metadata: {
+      source: capture.source,
+      monitor_id: capture.monitorId ?? null,
+      monitor_name: capture.monitorName ?? null,
+      width: capture.width,
+      height: capture.height,
+      original_width: capture.originalWidth,
+      original_height: capture.originalHeight,
+      quality: capture.quality,
+      byte_size: capture.byteSize,
+    },
+  };
+}
+
 export async function classifyIntent(
   transcript: string,
-  screenshotB64?: string | null
+  screenshot?: ScreenCapture | null
 ): Promise<SupervisorResult> {
   const res = await fetch(`${getApiUrl()}/chat/supervisor`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
       transcript,
-      screenshot_b64: screenshotB64 ?? null,
+      ...screenshotPayload(screenshot),
       history: [],
     }),
   });
@@ -50,7 +94,7 @@ export async function classifyIntent(
 export async function dispatchAgent(
   task: string,
   route?: string,
-  screenshotB64?: string | null
+  screenshot?: ScreenCapture | null
 ): Promise<{ task_id: string; route: string }> {
   const res = await fetch(`${getApiUrl()}/agent/dispatch`, {
     method: "POST",
@@ -58,7 +102,7 @@ export async function dispatchAgent(
     body: JSON.stringify({
       task,
       route,
-      screenshot_b64: screenshotB64 ?? null,
+      ...screenshotPayload(screenshot),
     }),
   });
   if (!res.ok) throw new Error(await res.text());

@@ -42,6 +42,8 @@ async def process_task(r: Any, payload: dict) -> None:
     task = payload["task"]
     user_id = payload.get("user_id", "")
     screenshot = payload.get("screenshot_b64")
+    screenshot_media_type = payload.get("screenshot_media_type") or "image/jpeg"
+    screenshot_metadata = payload.get("screenshot_metadata")
 
     await publish(
         r,
@@ -62,6 +64,8 @@ async def process_task(r: Any, payload: dict) -> None:
         "task_id": task_id,
         "user_id": user_id,
         "screenshot_b64": screenshot,
+        "screenshot_media_type": screenshot_media_type,
+        "screenshot_metadata": screenshot_metadata,
         "tool_results": [],
         "messages": [],
         "step": 0,

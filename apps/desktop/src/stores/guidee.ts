@@ -1,5 +1,10 @@
 import { create } from "zustand";
 
+export type ScreenCaptureSource =
+  | "selectedMonitor"
+  | "focusedWindow"
+  | "cursorMonitor";
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
@@ -36,6 +41,9 @@ interface GuideeStore {
   apiUrl: string;
   devToken: string;
   autoCapture: boolean;
+  confirmScreenCapture: boolean;
+  screenCaptureSource: ScreenCaptureSource;
+  selectedMonitorId: number | null;
   notificationsEnabled: boolean;
   voiceStatus: "idle" | "waitingWake" | "listening" | "recording" | "error";
   voiceError: string | null;
@@ -62,6 +70,9 @@ interface GuideeStore {
   setApiUrl: (url: string) => void;
   setDevToken: (token: string) => void;
   setAutoCapture: (v: boolean) => void;
+  setConfirmScreenCapture: (v: boolean) => void;
+  setScreenCaptureSource: (source: ScreenCaptureSource) => void;
+  setSelectedMonitorId: (id: number | null) => void;
   setNotificationsEnabled: (v: boolean) => void;
   setVoiceStatus: (status: GuideeStore["voiceStatus"]) => void;
   setVoiceError: (message: string | null) => void;
@@ -74,6 +85,19 @@ interface GuideeStore {
 }
 
 let msgCounter = 0;
+
+const storedMonitorId = localStorage.getItem("guidee_selected_monitor_id");
+const initialMonitorId =
+  storedMonitorId === null || !Number.isFinite(Number(storedMonitorId))
+    ? null
+    : Number(storedMonitorId);
+const storedCaptureSource = localStorage.getItem("guidee_screen_capture_source");
+const initialCaptureSource: ScreenCaptureSource =
+  storedCaptureSource === "focusedWindow" ||
+  storedCaptureSource === "cursorMonitor" ||
+  storedCaptureSource === "selectedMonitor"
+    ? storedCaptureSource
+    : "selectedMonitor";
 
 export const useGuideeStore = create<GuideeStore>((set) => ({
   messages: [],
@@ -89,6 +113,10 @@ export const useGuideeStore = create<GuideeStore>((set) => ({
   apiUrl: localStorage.getItem("guidee_api_url") ?? "http://localhost:8000",
   devToken: localStorage.getItem("guidee_dev_token") ?? "dev:local-user",
   autoCapture: localStorage.getItem("guidee_auto_capture") !== "false",
+  confirmScreenCapture:
+    localStorage.getItem("guidee_confirm_screen_capture") !== "false",
+  screenCaptureSource: initialCaptureSource,
+  selectedMonitorId: initialMonitorId,
   notificationsEnabled:
     localStorage.getItem("guidee_notifications_enabled") !== "false",
   voiceStatus: "idle",
@@ -170,6 +198,19 @@ export const useGuideeStore = create<GuideeStore>((set) => ({
   setAutoCapture: (v) => {
     localStorage.setItem("guidee_auto_capture", String(v));
     set({ autoCapture: v });
+  },
+  setConfirmScreenCapture: (v) => {
+    localStorage.setItem("guidee_confirm_screen_capture", String(v));
+    set({ confirmScreenCapture: v });
+  },
+  setScreenCaptureSource: (source) => {
+    localStorage.setItem("guidee_screen_capture_source", source);
+    set({ screenCaptureSource: source });
+  },
+  setSelectedMonitorId: (id) => {
+    if (id === null) localStorage.removeItem("guidee_selected_monitor_id");
+    else localStorage.setItem("guidee_selected_monitor_id", String(id));
+    set({ selectedMonitorId: id });
   },
   setNotificationsEnabled: (v) => {
     localStorage.setItem("guidee_notifications_enabled", String(v));

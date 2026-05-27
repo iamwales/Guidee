@@ -21,6 +21,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::screen::list_monitors,
             commands::screen::capture_screen,
             commands::audio::start_listening,
             commands::audio::stop_listening,

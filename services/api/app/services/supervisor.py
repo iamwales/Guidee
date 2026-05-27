@@ -42,6 +42,7 @@ async def classify_request(
     claude: "ClaudeService",
     transcript: str,
     screenshot_b64: str | None,
+    screenshot_media_type: str | None = "image/jpeg",
 ) -> SupervisorResponse:
     prefix = detect_intent_prefix(transcript)
     if prefix:
@@ -57,6 +58,7 @@ async def classify_request(
         system=SUPERVISOR_PROMPT,
         max_tokens=256,
         image_b64=screenshot_b64,
+        image_media_type=screenshot_media_type,
     )
 
     # Extract JSON from response

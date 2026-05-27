@@ -45,6 +45,7 @@ async def dispatch_agent(
                 claude,
                 body.transcript or body.task,
                 body.screenshot_b64,
+                body.screenshot_media_type,
             )
             if classification.route == "clarify":
                 raise HTTPException(
@@ -73,6 +74,8 @@ async def dispatch_agent(
         task_text,
         route,
         body.screenshot_b64,
+        body.screenshot_media_type,
+        body.screenshot_metadata.model_dump() if body.screenshot_metadata else None,
     )
     return AgentDispatchResponse(task_id=task_id, route=route, status="pending")
 
@@ -94,6 +97,7 @@ async def route_and_dispatch(
         claude,
         body.transcript,
         body.screenshot_b64,
+        body.screenshot_media_type,
     )
 
     if classification.route == "instant":
@@ -115,6 +119,8 @@ async def route_and_dispatch(
         classification.task or body.transcript,
         classification.route,
         body.screenshot_b64,
+        body.screenshot_media_type,
+        body.screenshot_metadata.model_dump() if body.screenshot_metadata else None,
     )
     return AgentDispatchResponse(
         task_id=task_id,

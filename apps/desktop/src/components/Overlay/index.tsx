@@ -34,6 +34,9 @@ export function Overlay() {
   const isThinking = useGuideeStore((s) => s.isThinking);
   const messages = useGuideeStore((s) => s.messages);
   const autoCapture = useGuideeStore((s) => s.autoCapture);
+  const confirmScreenCapture = useGuideeStore((s) => s.confirmScreenCapture);
+  const screenCaptureSource = useGuideeStore((s) => s.screenCaptureSource);
+  const selectedMonitorId = useGuideeStore((s) => s.selectedMonitorId);
   const voiceStatus = useGuideeStore((s) => s.voiceStatus);
   const voiceError = useGuideeStore((s) => s.voiceError);
   const setOverlayExpanded = useGuideeStore((s) => s.setOverlayExpanded);
@@ -78,7 +81,16 @@ export function Overlay() {
     resetInactivity();
 
     try {
-      const screenshot = autoCapture ? await captureScreen() : null;
+      const shouldCapture =
+        autoCapture &&
+        (!confirmScreenCapture ||
+          window.confirm("Share screen context with Guidee for this request?"));
+      const screenshot = shouldCapture
+        ? await captureScreen({
+            source: screenCaptureSource,
+            monitorId: selectedMonitorId,
+          })
+        : null;
       const routed = await handleUserRequest(text, screenshot);
 
       if (routed?.type === "instant") {
@@ -88,7 +100,7 @@ export function Overlay() {
           streaming: true,
         });
         await streamChat(
-          { transcript: text, screenshot_b64: screenshot },
+          { transcript: text, screenshot },
           (token) => appendToMessage(assistantId, token),
           () => updateMessage(assistantId, { streaming: false }),
           (err) =>

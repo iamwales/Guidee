@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import type { ScreenCapture } from "@/hooks/useScreen";
 import { classifyIntent, dispatchAgent } from "@/lib/api";
 import { notify } from "@/lib/notifications";
 import { streamAgentProgress } from "@/lib/stream";
@@ -13,9 +14,9 @@ export function useAgent() {
   const handleUserRequest = useCallback(
     async (
       transcript: string,
-      screenshotB64?: string | null
+      screenshot?: ScreenCapture | null
     ): Promise<{ type: "instant"; transcript: string } | void> => {
-      const classification = await classifyIntent(transcript, screenshotB64);
+      const classification = await classifyIntent(transcript, screenshot);
 
       if (classification.route === "clarify") {
         addMessage({
@@ -34,7 +35,7 @@ export function useAgent() {
       const { task_id, route } = await dispatchAgent(
         classification.task ?? transcript,
         classification.route,
-        screenshotB64
+        screenshot
       );
 
       addAgentTask({

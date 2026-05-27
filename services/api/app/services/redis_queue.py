@@ -28,6 +28,8 @@ class TaskStore:
         task_input: str,
         route: str,
         screenshot_b64: str | None = None,
+        screenshot_media_type: str | None = None,
+        screenshot_metadata: dict[str, Any] | None = None,
     ) -> str:
         r = await self.connect()
         task_id = str(uuid.uuid4())
@@ -37,6 +39,8 @@ class TaskStore:
             "task": task_input,
             "route": route,
             "screenshot_b64": screenshot_b64,
+            "screenshot_media_type": screenshot_media_type,
+            "screenshot_metadata": screenshot_metadata,
             "status": "pending",
         }
         await r.hset(

@@ -8,9 +8,23 @@ class ChatTurn(BaseModel):
     content: str
 
 
+class ScreenshotMetadata(BaseModel):
+    source: Literal["selectedMonitor", "focusedWindow", "cursorMonitor"]
+    monitor_id: int | None = None
+    monitor_name: str | None = None
+    width: int
+    height: int
+    original_width: int
+    original_height: int
+    quality: int
+    byte_size: int
+
+
 class ChatRequest(BaseModel):
     transcript: str
     screenshot_b64: str | None = None
+    screenshot_media_type: Literal["image/jpeg"] | None = None
+    screenshot_metadata: ScreenshotMetadata | None = None
     history: list[ChatTurn] = Field(default_factory=list)
     conversation_id: str | None = None
 
@@ -18,6 +32,8 @@ class ChatRequest(BaseModel):
 class SupervisorRequest(BaseModel):
     transcript: str
     screenshot_b64: str | None = None
+    screenshot_media_type: Literal["image/jpeg"] | None = None
+    screenshot_metadata: ScreenshotMetadata | None = None
     history: list[ChatTurn] = Field(default_factory=list)
 
 
@@ -32,6 +48,8 @@ class AgentDispatchRequest(BaseModel):
     task: str
     route: Literal["browser", "research", "file", "email"] | None = None
     screenshot_b64: str | None = None
+    screenshot_media_type: Literal["image/jpeg"] | None = None
+    screenshot_metadata: ScreenshotMetadata | None = None
     transcript: str | None = None
 
 

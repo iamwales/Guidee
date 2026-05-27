@@ -1,10 +1,12 @@
 import json
 import sys
 import unittest
+from base64 import b64encode
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from app.services.claude import build_messages
 from app.services.supervisor import classify_request, detect_intent_prefix
 
 
@@ -56,6 +58,26 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(result.route, "instant")
+
+    def test_build_messages_attaches_valid_jpeg_screenshot(self):
+        screenshot = b64encode(b"jpeg bytes").decode()
+        messages = build_messages("what is this?", screenshot, [])
+
+        content = messages[-1]["content"]
+        self.assertEqual(content[0]["type"], "image")
+        self.assertEqual(content[0]["source"]["media_type"], "image/jpeg")
+        self.assertEqual(content[0]["source"]["data"], screenshot)
+        self.assertEqual(content[1], {"type": "text", "text": "what is this?"})
+
+    def test_build_messages_strips_data_url_prefix(self):
+        screenshot = b64encode(b"jpeg bytes").decode()
+        messages = build_messages(
+            "what is this?",
+            f"data:image/jpeg;base64,{screenshot}",
+            [],
+        )
+
+        self.assertEqual(messages[-1]["content"][0]["source"]["data"], screenshot)
 
 
 if __name__ == "__main__":

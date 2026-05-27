@@ -1,7 +1,8 @@
 import { ensureNotificationPermission } from "@/lib/notifications";
 import { useGuideeStore } from "@/stores/guidee";
-import { Bell, Camera, Check, KeyRound, Mic, Server, X } from "lucide-react";
-import { useState } from "react";
+import { useScreen } from "@/hooks/useScreen";
+import { Bell, Camera, Check, KeyRound, Mic, Monitor, Server, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -11,6 +12,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const apiUrl = useGuideeStore((s) => s.apiUrl);
   const devToken = useGuideeStore((s) => s.devToken);
   const autoCapture = useGuideeStore((s) => s.autoCapture);
+  const confirmScreenCapture = useGuideeStore((s) => s.confirmScreenCapture);
+  const screenCaptureSource = useGuideeStore((s) => s.screenCaptureSource);
+  const selectedMonitorId = useGuideeStore((s) => s.selectedMonitorId);
   const notificationsEnabled = useGuideeStore((s) => s.notificationsEnabled);
   const voiceError = useGuideeStore((s) => s.voiceError);
   const whisperModelPath = useGuideeStore((s) => s.whisperModelPath);
@@ -22,6 +26,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const setApiUrl = useGuideeStore((s) => s.setApiUrl);
   const setDevToken = useGuideeStore((s) => s.setDevToken);
   const setAutoCapture = useGuideeStore((s) => s.setAutoCapture);
+  const setConfirmScreenCapture = useGuideeStore(
+    (s) => s.setConfirmScreenCapture
+  );
+  const setScreenCaptureSource = useGuideeStore(
+    (s) => s.setScreenCaptureSource
+  );
+  const setSelectedMonitorId = useGuideeStore((s) => s.setSelectedMonitorId);
   const setNotificationsEnabled = useGuideeStore(
     (s) => s.setNotificationsEnabled
   );
@@ -45,6 +56,11 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const [draftWakeKeywordPath, setDraftWakeKeywordPath] =
     useState(wakeWordKeywordPath);
   const [saved, setSaved] = useState(false);
+  const { monitors, refreshMonitors } = useScreen();
+
+  useEffect(() => {
+    void refreshMonitors().catch(() => undefined);
+  }, [refreshMonitors]);
 
   const save = () => {
     setApiUrl(draftApiUrl);
@@ -117,6 +133,63 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           onChange={(event) => setAutoCapture(event.target.checked)}
           className="h-4 w-4 accent-guidee-accent"
         />
+      </label>
+
+      <label className="flex items-center justify-between rounded-md border border-guidee-border bg-guidee-surface px-3 py-2">
+        <span className="flex items-center gap-2 text-guidee-text">
+          <Camera className="h-4 w-4 text-guidee-accent" />
+          Confirm screen capture
+        </span>
+        <input
+          type="checkbox"
+          checked={confirmScreenCapture}
+          onChange={(event) => setConfirmScreenCapture(event.target.checked)}
+          className="h-4 w-4 accent-guidee-accent"
+        />
+      </label>
+
+      <label className="block space-y-1">
+        <span className="flex items-center gap-2 text-xs font-medium text-guidee-muted">
+          <Monitor className="h-3.5 w-3.5" />
+          Capture source
+        </span>
+        <select
+          value={screenCaptureSource}
+          onChange={(event) =>
+            setScreenCaptureSource(
+              event.target.value as typeof screenCaptureSource
+            )
+          }
+          className="w-full rounded-md border border-guidee-border bg-guidee-surface px-3 py-2 text-guidee-text outline-none focus:border-guidee-accent"
+        >
+          <option value="selectedMonitor">Selected monitor</option>
+          <option value="focusedWindow">Focused window</option>
+          <option value="cursorMonitor">Cursor monitor</option>
+        </select>
+      </label>
+
+      <label className="block space-y-1">
+        <span className="flex items-center gap-2 text-xs font-medium text-guidee-muted">
+          <Monitor className="h-3.5 w-3.5" />
+          Monitor
+        </span>
+        <select
+          value={selectedMonitorId ?? ""}
+          onChange={(event) =>
+            setSelectedMonitorId(
+              event.target.value ? Number(event.target.value) : null
+            )
+          }
+          className="w-full rounded-md border border-guidee-border bg-guidee-surface px-3 py-2 text-guidee-text outline-none focus:border-guidee-accent"
+        >
+          <option value="">Default monitor</option>
+          {monitors.map((monitor) => (
+            <option key={monitor.id} value={monitor.id}>
+              {monitor.friendlyName || monitor.name || `Monitor ${monitor.id}`} (
+              {monitor.width}x{monitor.height})
+            </option>
+          ))}
+        </select>
       </label>
 
       <label className="block space-y-1">

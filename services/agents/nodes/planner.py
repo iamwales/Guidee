@@ -9,7 +9,9 @@ Available tools:
 - browse_url
 - read_file
 - write_file
+- edit_file
 - list_directory
+- summarize_file
 - send_email
 - draft_email
 - run_code

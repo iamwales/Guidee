@@ -18,6 +18,8 @@ class AgentSettings(BaseSettings):
     agent_task_timeout_seconds: int = 300
     agent_node_retry_attempts: int = 1
     worker_health_interval_seconds: int = 30
+    file_agent_allowed_roots: str = "~/Guidee"
+    file_agent_max_read_bytes: int = 5_000_000
 
 
 @lru_cache

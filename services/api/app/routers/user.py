@@ -3,9 +3,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from app.core.config import Settings, get_settings
-from app.core.rate_limit import limit_for_plan
+from app.core.rate_limit import daily_agent_limit_for_plan, limit_for_plan
 from app.core.security import AuthUser, get_current_user
-from app.models.schemas import UserMeResponse, UserUsageResponse
+from app.models.schemas import (
+    AccountDeleteResponse,
+    UserExportResponse,
+    UserMeResponse,
+    UserUsageResponse,
+)
 from app.services.history import HistoryStore
 
 router = APIRouter(prefix="/user", tags=["user"])
@@ -47,6 +52,7 @@ async def get_usage(
             settings,
             settings.rate_limit_agent,
         ),
+        daily_agent_task_limit=daily_agent_limit_for_plan(user.plan, settings),
     )
 
 
@@ -56,3 +62,21 @@ async def get_history(
     settings: Annotated[Settings, Depends(get_settings)],
 ):
     return {"tasks": await HistoryStore(settings).list_tasks(user.clerk_id)}
+
+
+@router.get("/export", response_model=UserExportResponse)
+async def export_user_data(
+    user: Annotated[AuthUser, Depends(get_current_user)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> UserExportResponse:
+    data = await HistoryStore(settings).export_user_data(user.clerk_id)
+    return UserExportResponse(**data)
+
+
+@router.delete("/me", response_model=AccountDeleteResponse)
+async def delete_user_account(
+    user: Annotated[AuthUser, Depends(get_current_user)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> AccountDeleteResponse:
+    await HistoryStore(settings).delete_user_data(user.clerk_id)
+    return AccountDeleteResponse(deleted=True)

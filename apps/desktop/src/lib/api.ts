@@ -13,10 +13,10 @@ export function getAuthHeaders(): HeadersInit {
     localStorage.getItem("guidee_token") ||
     localStorage.getItem("guidee_dev_token") ||
     import.meta.env.VITE_DEV_TOKEN ||
-    "dev:local-user";
+    (import.meta.env.DEV ? "dev:local-user" : "");
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 

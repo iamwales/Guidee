@@ -81,7 +81,11 @@ export function streamAgentProgress(
     localStorage.getItem("guidee_token") ||
     localStorage.getItem("guidee_dev_token") ||
     import.meta.env.VITE_DEV_TOKEN ||
-    "dev:local-user";
+    (import.meta.env.DEV ? "dev:local-user" : "");
+  if (!token) {
+    onEvent({ type: "error", message: "Missing authentication token" });
+    return () => undefined;
+  }
   const url = `${getApiUrl()}/agent/${taskId}/stream?token=${encodeURIComponent(
     token
   )}`;

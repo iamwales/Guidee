@@ -93,6 +93,19 @@ class HistoryStore:
         rows = cast(list[dict[str, Any]], response.data or [])
         return dict(rows[0]) if rows else None
 
+    async def get_or_create_profile(
+        self,
+        *,
+        user_id: str,
+        email: str | None,
+        plan: str = "free",
+    ) -> dict[str, Any]:
+        profile = await self.get_profile(user_id)
+        if profile:
+            return profile
+        created = await self.upsert_profile(user_id=user_id, email=email, plan=plan)
+        return created or {"user_id": user_id, "email": email, "plan": plan}
+
     async def upsert_profile(
         self,
         *,
@@ -109,3 +122,41 @@ class HistoryStore:
         )
         rows = cast(list[dict[str, Any]], response.data or [])
         return dict(rows[0]) if rows else None
+
+    async def update_profile(
+        self,
+        user_id: str,
+        **updates: Any,
+    ) -> dict[str, Any] | None:
+        if not self.configured:
+            return None
+        payload = {"user_id": user_id, **updates}
+        response = (
+            self.client.table("guidee_user_profiles")
+            .upsert(payload)
+            .execute()
+        )
+        rows = cast(list[dict[str, Any]], response.data or [])
+        return dict(rows[0]) if rows else None
+
+    async def export_user_data(self, user_id: str) -> dict[str, Any]:
+        return {
+            "profile": await self.get_profile(user_id),
+            "tasks": await self.list_tasks(user_id, limit=500),
+        }
+
+    async def delete_user_data(self, user_id: str) -> None:
+        if not self.configured:
+            return
+        (
+            self.client.table("guidee_task_history")
+            .delete()
+            .eq("user_id", user_id)
+            .execute()
+        )
+        (
+            self.client.table("guidee_user_profiles")
+            .delete()
+            .eq("user_id", user_id)
+            .execute()
+        )

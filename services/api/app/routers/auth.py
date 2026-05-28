@@ -6,6 +6,7 @@ from jose import jwt
 from app.core.config import Settings, get_settings
 from app.core.security import AuthUser, get_current_user
 from app.models.schemas import AuthTokenRequest, AuthTokenResponse, UserMeResponse
+from app.services.history import HistoryStore
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -18,6 +19,12 @@ async def exchange_token(
     """Exchange Clerk session JWT for API bearer (dev: pass-through)."""
     if not body.clerk_token:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Missing clerk_token")
+
+    if body.clerk_token.startswith("dev:") and not settings.dev_tokens_enabled:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Development tokens are disabled",
+        )
 
     if settings.clerk_secret_key:
         try:
@@ -43,9 +50,15 @@ async def exchange_token(
 @router.get("/me", response_model=UserMeResponse)
 async def get_me(
     user: Annotated[AuthUser, Depends(get_current_user)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> UserMeResponse:
-    return UserMeResponse(
-        clerk_id=user.clerk_id,
+    profile = await HistoryStore(settings).get_or_create_profile(
+        user_id=user.clerk_id,
         email=user.email,
         plan=user.plan,
+    )
+    return UserMeResponse(
+        clerk_id=user.clerk_id,
+        email=str(profile.get("email") or user.email) if profile else user.email,
+        plan=str(profile.get("plan", user.plan)) if profile else user.plan,
     )

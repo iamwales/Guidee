@@ -57,3 +57,12 @@ def limit_for_plan(plan: str, path: str, settings: Settings, default: int) -> in
     if normalized == "pro":
         return settings.rate_limit_chat_pro
     return default
+
+
+def daily_agent_limit_for_plan(plan: str, settings: Settings) -> int:
+    normalized = plan.lower()
+    if normalized == "team":
+        return settings.daily_agent_tasks_team
+    if normalized == "pro":
+        return settings.daily_agent_tasks_pro
+    return settings.daily_agent_tasks_free

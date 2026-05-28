@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     stripe_price_pro: str = ""
     stripe_price_team: str = ""
     stripe_portal_url: str = ""
+    stripe_customer_portal_return_url: str = "http://localhost:1420/settings"
+
+    app_env: str = "development"
+    allow_dev_tokens: bool = True
 
     cors_origins: str = "http://localhost:1420,tauri://localhost"
 
@@ -45,10 +49,24 @@ class Settings(BaseSettings):
     rate_limit_agent_pro: int = 20
     rate_limit_chat_team: int = 300
     rate_limit_agent_team: int = 60
+    daily_agent_tasks_free: int = 25
+    daily_agent_tasks_pro: int = 250
+    daily_agent_tasks_team: int = 1000
+    agent_task_ttl_seconds: int = 86_400
+    audit_log_enabled: bool = True
 
     @property
     def has_llm_api_key(self) -> bool:
         return bool(self.openrouter_api_key)
+
+    @property
+    def dev_tokens_enabled(self) -> bool:
+        return self.allow_dev_tokens and self.app_env.lower() in {
+            "dev",
+            "development",
+            "local",
+            "test",
+        }
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -8,6 +8,38 @@ CREATE TABLE IF NOT EXISTS users (
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS guidee_user_profiles (
+  user_id                  TEXT PRIMARY KEY,
+  email                    TEXT,
+  plan                     TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro', 'team')),
+  stripe_customer_id       TEXT,
+  stripe_subscription_id   TEXT,
+  subscription_status      TEXT,
+  created_at               TIMESTAMPTZ DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS guidee_task_history (
+  task_id             TEXT PRIMARY KEY,
+  user_id             TEXT NOT NULL REFERENCES guidee_user_profiles(user_id) ON DELETE CASCADE,
+  task_input          TEXT NOT NULL,
+  route               TEXT NOT NULL,
+  status              TEXT DEFAULT 'pending',
+  result              TEXT,
+  error               TEXT,
+  screenshot_metadata JSONB,
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS guidee_audit_events (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     TEXT NOT NULL REFERENCES guidee_user_profiles(user_id) ON DELETE CASCADE,
+  event       TEXT NOT NULL,
+  metadata    JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS conversations (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id      UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -51,3 +83,5 @@ CREATE TABLE IF NOT EXISTS usage_logs (
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_agent_tasks_user ON agent_tasks(user_id);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_user ON usage_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_guidee_task_history_user ON guidee_task_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_guidee_audit_events_user ON guidee_audit_events(user_id);

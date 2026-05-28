@@ -108,6 +108,7 @@ class UserUsageResponse(BaseModel):
     plan: str
     chat_limit_per_minute: int
     agent_limit_per_minute: int
+    daily_agent_task_limit: int
     messages_today: int = 0
     agent_tasks_today: int = 0
 
@@ -120,3 +121,16 @@ class BillingCheckoutRequest(BaseModel):
 
 class BillingCheckoutResponse(BaseModel):
     url: str
+
+
+class BillingPortalResponse(BaseModel):
+    url: str
+
+
+class UserExportResponse(BaseModel):
+    profile: dict | None
+    tasks: list[dict]
+
+
+class AccountDeleteResponse(BaseModel):
+    deleted: bool

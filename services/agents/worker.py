@@ -28,6 +28,24 @@ TASK_QUEUE = "guidee:agent:queue"
 TASK_PREFIX = "guidee:task:"
 TASK_CHANNEL_PREFIX = "task:"
 WORKER_HEALTH_KEY = "guidee:worker:health"
+SENSITIVE_EVENT_KEYS = {"screenshot_b64", "image_b64", "audio", "token", "secret"}
+
+
+def sanitize_event(event: dict[str, Any]) -> dict[str, Any]:
+    clean: dict[str, Any] = {}
+    for key, value in event.items():
+        if any(sensitive in key.lower() for sensitive in SENSITIVE_EVENT_KEYS):
+            clean[key] = "[redacted]"
+        elif isinstance(value, dict):
+            clean[key] = sanitize_event(value)
+        elif isinstance(value, list):
+            clean[key] = [
+                sanitize_event(item) if isinstance(item, dict) else item
+                for item in value
+            ]
+        else:
+            clean[key] = value
+    return clean
 
 
 def configure_tracing(settings: Any) -> None:
@@ -39,6 +57,7 @@ def configure_tracing(settings: Any) -> None:
 
 
 async def publish(r: Any, task_id: str, event: dict) -> None:
+    event = sanitize_event(event)
     event["task_id"] = task_id
     if "total_steps" in event and "steps_total" not in event:
         event["steps_total"] = event["total_steps"]

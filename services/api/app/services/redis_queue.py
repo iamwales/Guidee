@@ -6,6 +6,7 @@ from typing import Any
 import redis.asyncio as redis
 
 from app.core.config import Settings
+from app.core.privacy import redact_mapping
 from app.services.history import HistoryStore
 
 TASK_QUEUE = "guidee:agent:queue"
@@ -55,6 +56,7 @@ class TaskStore:
                 "steps_done": "0",
             },
         )
+        await r.expire(f"{TASK_PREFIX}{task_id}", self.settings.agent_task_ttl_seconds)
         await r.lpush(TASK_QUEUE, json.dumps(payload))
         await HistoryStore(self.settings).record_task_created(
             task_id=task_id,
@@ -113,6 +115,7 @@ class TaskStore:
 
     async def publish_progress(self, task_id: str, event: dict) -> None:
         r = await self.connect()
+        event = redact_mapping(event)
         event["task_id"] = task_id
         await r.publish(f"{TASK_CHANNEL_PREFIX}{task_id}", json.dumps(event))
 

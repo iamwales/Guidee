@@ -105,6 +105,10 @@ class BrowserAgentTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result["status"], "done")
         self.assertEqual(result["result"], "Browser task completed")
+        self.assertNotIn(
+            "screenshot_b64",
+            result["tool_results"][0]["result"],
+        )
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, Request, status
 from jose import JWTError, jwt
 
 from app.core.config import Settings, get_settings
+from app.services.history import HistoryStore
 
 JWKS_CACHE: dict | None = None
 
@@ -32,9 +33,13 @@ async def _fetch_jwks(settings: Settings) -> dict:
 
 
 def _decode_token(token: str, settings: Settings, jwks: dict) -> dict:
+    if token.startswith("dev:") and not settings.dev_tokens_enabled:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Development tokens are disabled",
+        )
     if not settings.clerk_secret_key and not settings.clerk_jwks_url:
-        # Development: accept opaque dev tokens
-        if token.startswith("dev:"):
+        if token.startswith("dev:") and settings.dev_tokens_enabled:
             return {"sub": token[4:], "email": "dev@guidee.local"}
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Auth not configured")
 
@@ -72,11 +77,17 @@ async def get_current_user(
     clerk_id = payload.get("sub") or payload.get("user_id")
     if not clerk_id:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid token payload")
-    return AuthUser(
+    user = AuthUser(
         clerk_id=str(clerk_id),
         email=payload.get("email"),
         plan=payload.get("plan", "free"),
     )
+    profile = await HistoryStore(settings).get_profile(user.clerk_id)
+    if profile:
+        user.plan = str(profile.get("plan", user.plan))
+        if profile.get("email") or user.email:
+            user.email = str(profile.get("email") or user.email)
+    return user
 
 
 async def optional_user(

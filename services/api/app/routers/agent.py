@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sse_starlette.sse import EventSourceResponse
 
 from app.core.config import Settings, get_settings
-from app.core.rate_limit import check_rate_limit, get_redis
+from app.core.rate_limit import (
+    check_rate_limit,
+    daily_agent_limit_for_plan,
+    get_redis,
+)
 from app.core.security import AuthUser, get_current_user
 from app.models.schemas import (
     AgentDispatchRequest,
@@ -88,6 +92,11 @@ async def dispatch_agent(
             status.HTTP_400_BAD_REQUEST,
             f"Invalid agent route: {route}",
         )
+    if daily_agent_limit_for_plan(user.plan, settings) <= 0:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Agent tasks are not available for this plan",
+        )
 
     task_id = await tasks.create_task(
         user.clerk_id,
@@ -132,6 +141,11 @@ async def route_and_dispatch(
                 "route": "clarify",
                 "question": classification.clarify_question,
             },
+        )
+    if daily_agent_limit_for_plan(user.plan, settings) <= 0:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Agent tasks are not available for this plan",
         )
 
     task_id = await tasks.create_task(

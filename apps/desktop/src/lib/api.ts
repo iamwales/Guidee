@@ -1,4 +1,5 @@
 import type { ScreenCapture } from "@/hooks/useScreen";
+import { getBearerToken } from "@/lib/privacy";
 
 export function getApiUrl(): string {
   return (
@@ -9,14 +10,10 @@ export function getApiUrl(): string {
 }
 
 export function getAuthHeaders(): HeadersInit {
-  const token =
-    localStorage.getItem("guidee_token") ||
-    localStorage.getItem("guidee_dev_token") ||
-    import.meta.env.VITE_DEV_TOKEN ||
-    "dev:local-user";
+  const token = getBearerToken();
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 

@@ -20,6 +20,11 @@ class AgentSettings(BaseSettings):
     worker_health_interval_seconds: int = 30
     file_agent_allowed_roots: str = "~/Guidee"
     file_agent_max_read_bytes: int = 5_000_000
+    gmail_client_id: str = ""
+    gmail_client_secret: str = ""
+    gmail_redirect_uri: str = "http://localhost:8765/oauth/gmail/callback"
+    gmail_token_path: str = "~/.guidee/gmail_tokens.json"
+    email_audit_log_path: str = "~/.guidee/email_audit.jsonl"
 
 
 @lru_cache

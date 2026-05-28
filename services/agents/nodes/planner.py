@@ -14,6 +14,10 @@ Available tools:
 - summarize_file
 - send_email
 - draft_email
+- reply_email
+- validate_recipients
+- get_gmail_oauth_url
+- exchange_gmail_oauth_code
 - run_code
 """
 

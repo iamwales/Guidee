@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getStoredAuthToken, setStoredAuthToken } from "@/lib/privacy";
 
 export type ScreenCaptureSource =
   | "selectedMonitor"
@@ -109,7 +110,7 @@ export const useGuideeStore = create<GuideeStore>((set) => ({
   overlayPinned: localStorage.getItem("guidee_overlay_pinned") === "true",
   onboardingComplete:
     localStorage.getItem("guidee_onboarding_complete") === "true",
-  authToken: localStorage.getItem("guidee_token"),
+  authToken: getStoredAuthToken(),
   apiUrl: localStorage.getItem("guidee_api_url") ?? "http://localhost:8000",
   devToken: localStorage.getItem("guidee_dev_token") ?? "dev:local-user",
   autoCapture: localStorage.getItem("guidee_auto_capture") !== "false",
@@ -124,7 +125,7 @@ export const useGuideeStore = create<GuideeStore>((set) => ({
   whisperModelPath:
     localStorage.getItem("guidee_whisper_model_path") ??
     "models/whisper-base.en.bin",
-  picovoiceAccessKey: localStorage.getItem("guidee_picovoice_access_key") ?? "",
+  picovoiceAccessKey: sessionStorage.getItem("guidee_picovoice_access_key") ?? "",
   wakeWordModelPath:
     localStorage.getItem("guidee_wake_word_model_path") ?? "",
   wakeWordKeywordPath:
@@ -182,8 +183,7 @@ export const useGuideeStore = create<GuideeStore>((set) => ({
     set({ onboardingComplete: v });
   },
   setAuthToken: (token) => {
-    if (token) localStorage.setItem("guidee_token", token);
-    else localStorage.removeItem("guidee_token");
+    setStoredAuthToken(token);
     set({ authToken: token });
   },
   setApiUrl: (url) => {
@@ -223,7 +223,8 @@ export const useGuideeStore = create<GuideeStore>((set) => ({
     set({ whisperModelPath: path });
   },
   setPicovoiceAccessKey: (key) => {
-    localStorage.setItem("guidee_picovoice_access_key", key);
+    if (key) sessionStorage.setItem("guidee_picovoice_access_key", key);
+    else sessionStorage.removeItem("guidee_picovoice_access_key");
     set({ picovoiceAccessKey: key });
   },
   setWakeWordModelPath: (path) => {

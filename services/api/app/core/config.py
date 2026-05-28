@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     daily_agent_tasks_free: int = 25
     daily_agent_tasks_pro: int = 250
     daily_agent_tasks_team: int = 1000
+    agent_task_ttl_seconds: int = 86_400
+    audit_log_enabled: bool = True
 
     @property
     def has_llm_api_key(self) -> bool:

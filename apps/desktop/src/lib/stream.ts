@@ -77,11 +77,7 @@ export function streamAgentProgress(
   taskId: string,
   onEvent: (event: Record<string, unknown>) => void
 ): () => void {
-  const token =
-    localStorage.getItem("guidee_token") ||
-    localStorage.getItem("guidee_dev_token") ||
-    import.meta.env.VITE_DEV_TOKEN ||
-    (import.meta.env.DEV ? "dev:local-user" : "");
+  const token = getBearerToken();
   if (!token) {
     onEvent({ type: "error", message: "Missing authentication token" });
     return () => undefined;
@@ -121,3 +117,4 @@ export function streamAgentProgress(
     clearInterval(poll);
   };
 }
+import { getBearerToken } from "@/lib/privacy";

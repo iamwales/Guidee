@@ -27,7 +27,12 @@ async def run(state: AgentState) -> AgentState:
                 continue
             # Re-perception loop
             result = await execute_action(action)
-            results.append({"action_index": i, "result": result})
+            safe_result = {
+                key: value
+                for key, value in result.items()
+                if key != "screenshot_b64"
+            }
+            results.append({"action_index": i, "result": safe_result})
             if result.get("screenshot_b64"):
                 state = {
                     **state,

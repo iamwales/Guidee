@@ -32,6 +32,14 @@ CREATE TABLE IF NOT EXISTS guidee_task_history (
   updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS guidee_audit_events (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     TEXT NOT NULL REFERENCES guidee_user_profiles(user_id) ON DELETE CASCADE,
+  event       TEXT NOT NULL,
+  metadata    JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS conversations (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id      UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -76,3 +84,4 @@ CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id
 CREATE INDEX IF NOT EXISTS idx_agent_tasks_user ON agent_tasks(user_id);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_user ON usage_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_guidee_task_history_user ON guidee_task_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_guidee_audit_events_user ON guidee_audit_events(user_id);

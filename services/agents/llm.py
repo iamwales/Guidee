@@ -1,7 +1,7 @@
 import base64
 import json
 import re
-from typing import Any
+from typing import Any, cast
 
 import anthropic
 from config import get_settings
@@ -30,11 +30,20 @@ async def complete_text(system: str, user: str, max_tokens: int = 1024) -> str:
         model=settings.claude_model,
         max_tokens=max_tokens,
         system=system,
-        messages=[{"role": "user", "content": [{"type": "text", "text": user}]}],
+        messages=[{"role": "user", "content": user}],
     )
-    return "".join(
-        block.text for block in resp.content if getattr(block, "type", None) == "text"
-    )
+    return _response_text(resp.content)
+
+
+def _response_text(content: Any) -> str:
+    parts = []
+    for block in content:
+        if getattr(block, "type", None) != "text":
+            continue
+        text = getattr(block, "text", "")
+        if isinstance(text, str):
+            parts.append(text)
+    return "".join(parts)
 
 
 def _image_content(image_b64: str, media_type: str = "image/jpeg") -> dict[str, Any]:
@@ -78,11 +87,9 @@ async def complete_json(
         model=settings.claude_model,
         max_tokens=max_tokens,
         system=system,
-        messages=[{"role": "user", "content": user_content}],
+        messages=cast(Any, [{"role": "user", "content": user_content}]),
     )
-    text = "".join(
-        block.text for block in resp.content if getattr(block, "type", None) == "text"
-    )
+    text = _response_text(resp.content)
     match = re.search(r"\{[\s\S]*\}", text)
     if not match:
         return {}

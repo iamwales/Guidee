@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from supabase import Client, create_client
 
@@ -78,7 +78,7 @@ class HistoryStore:
             .limit(limit)
             .execute()
         )
-        return list(response.data or [])
+        return cast(list[dict[str, Any]], response.data or [])
 
     async def get_profile(self, user_id: str) -> dict[str, Any] | None:
         if not self.configured:
@@ -90,7 +90,7 @@ class HistoryStore:
             .limit(1)
             .execute()
         )
-        rows = response.data or []
+        rows = cast(list[dict[str, Any]], response.data or [])
         return dict(rows[0]) if rows else None
 
     async def upsert_profile(
@@ -107,5 +107,5 @@ class HistoryStore:
             .upsert({"user_id": user_id, "email": email, "plan": plan})
             .execute()
         )
-        rows = response.data or []
+        rows = cast(list[dict[str, Any]], response.data or [])
         return dict(rows[0]) if rows else None

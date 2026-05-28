@@ -9,9 +9,15 @@ Available tools:
 - browse_url
 - read_file
 - write_file
+- edit_file
 - list_directory
+- summarize_file
 - send_email
 - draft_email
+- reply_email
+- validate_recipients
+- get_gmail_oauth_url
+- exchange_gmail_oauth_code
 - run_code
 """
 

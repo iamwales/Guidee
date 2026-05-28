@@ -15,6 +15,7 @@ class AgentState(TypedDict, total=False):
     screenshot_b64: str | None
     screenshot_media_type: str | None
     screenshot_metadata: dict | None
+    browser_context: dict | None
     html: str | None
     vision_context: dict | None
     dom_selectors: dict | None

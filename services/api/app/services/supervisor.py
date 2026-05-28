@@ -262,6 +262,8 @@ async def classify_request(
 
 
 def _parse_confidence(value: object) -> float:
+    if not isinstance(value, int | float | str):
+        return 0.5
     try:
         return max(0.0, min(1.0, float(value)))
     except (TypeError, ValueError):

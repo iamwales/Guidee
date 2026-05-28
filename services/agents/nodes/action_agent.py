@@ -7,11 +7,27 @@ from nodes import vision_agent
 async def run(state: AgentState) -> AgentState:
     actions = state.get("action_plan") or []
     results = list(state.get("tool_results", []))
+    screenshot_checks = 0
 
     for i, action in enumerate(actions):
+        if action.get("requires_confirmation") and action.get("confirmed") is not True:
+            return {
+                **state,
+                "tool_results": results,
+                "status": "failed",
+                "progress_message": "Browser action needs user confirmation",
+                "result": (
+                    "I need confirmation before performing a sensitive browser action."
+                ),
+            }
+
         if action.get("type") == "screenshot":
+            screenshot_checks += 1
+            if screenshot_checks > 3:
+                continue
             # Re-perception loop
             result = await execute_action(action)
+            results.append({"action_index": i, "result": result})
             if result.get("screenshot_b64"):
                 state = {
                     **state,

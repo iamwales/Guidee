@@ -4,6 +4,7 @@ from nodes import (
     executor,
     instruction_agent,
     planner,
+    research,
     router,
     summarizer,
     vision_agent,
@@ -11,6 +12,7 @@ from nodes import (
 
 __all__ = [
     "planner",
+    "research",
     "executor",
     "summarizer",
     "router",
